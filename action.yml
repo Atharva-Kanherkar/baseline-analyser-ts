@@ -1,0 +1,56 @@
+name: 'Web Platform Baseline Analyzer'
+description: 'Analyzes PRs for web platform compatibility issues using latest baseline data from web-features package'
+author: 'atharva'
+
+branding:
+  icon: 'search'
+  color: 'blue'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access'
+    required: true
+    default: ${{ github.token }}
+  
+  target-browsers:
+    description: 'Target browser versions (comma-separated)'
+    required: false
+    default: 'chrome >= 90, firefox >= 88, safari >= 14, edge >= 90'
+  
+  blocking-level:
+    description: 'Minimum risk level to block PRs (CRITICAL, HIGH, MEDIUM, LOW)'
+    required: false
+    default: 'HIGH'
+  
+  large-pr-threshold:
+    description: 'Number of files that constitute a large PR'
+    required: false
+    default: '20'
+  
+  huge-pr-threshold:
+    description: 'Number of files that constitute a huge PR'
+    required: false
+    default: '50'
+  
+  enable-ai-review:
+    description: 'Enable AI-powered review suggestions'
+    required: false
+    default: 'false'
+  
+  openai-api-key:
+    description: 'OpenAI API key for AI features (optional)'
+    required: false
+
+outputs:
+  should-block:
+    description: 'Whether the PR should be blocked'
+  
+  risk-count:
+    description: 'Number of compatibility risks found'
+  
+  decision:
+    description: 'Final analysis decision'
+
+runs:
+  using: 'node20'
+  main: 'dist/actions/main.js'
