@@ -32712,9 +32712,19 @@ async function debugNpmPackages() {
     logger/* logger */.v.info('=== NPM PACKAGES DEBUG ===');
     try {
         const webFeaturesModule = await __nccwpck_require__.e(/* import() */ 197).then(__nccwpck_require__.bind(__nccwpck_require__, 3197));
-        const webFeatures = webFeaturesModule.default || webFeaturesModule;
-        if (webFeatures && typeof webFeatures === 'object') {
-            const { features, groups, browsers } = webFeatures;
+        const webFeatures = webFeaturesModule?.default?.default ||
+            webFeaturesModule?.default ||
+            webFeaturesModule;
+        const features = webFeatures?.features ||
+            webFeatures?.default?.features ||
+            (webFeatures.default && webFeatures.default.features);
+        const groups = webFeatures?.groups ||
+            webFeatures?.default?.groups ||
+            (webFeatures.default && webFeatures.default.groups);
+        const browsers = webFeatures?.browsers ||
+            webFeatures?.default?.browsers ||
+            (webFeatures.default && webFeatures.default.browsers);
+        if (features && typeof features === 'object' && Object.keys(features).length > 0) {
             if (features && groups && browsers) {
                 logger/* logger */.v.info('✅ web-features package available');
                 logger/* logger */.v.info(`📊 Features count: ${Object.keys(features).length}`);

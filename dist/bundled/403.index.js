@@ -19,12 +19,23 @@ class BaselineService {
             return;
         }
         try {
-            const webFeatures = await __webpack_require__.e(/* import() */ 197).then(__webpack_require__.bind(__webpack_require__, 3197));
-            this.webFeaturesData = {
-                features: webFeatures.features || webFeatures.default?.features,
-                browsers: webFeatures.browsers || webFeatures.default?.browsers
-            };
-            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug('web-features package loaded successfully');
+            const webFeaturesModule = await __webpack_require__.e(/* import() */ 197).then(__webpack_require__.bind(__webpack_require__, 3197));
+            const webFeatures = webFeaturesModule?.default?.default ||
+                webFeaturesModule?.default ||
+                webFeaturesModule;
+            const features = webFeatures?.features ||
+                webFeatures?.default?.features ||
+                (webFeatures.default && webFeatures.default.features);
+            const browsers = webFeatures?.browsers ||
+                webFeatures?.default?.browsers ||
+                (webFeatures.default && webFeatures.default.browsers);
+            if (!features || typeof features !== 'object' || Object.keys(features).length === 0) {
+                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.warn('web-features package loaded but no valid features data found');
+                this.webFeaturesData = null;
+                return;
+            }
+            this.webFeaturesData = { features, browsers };
+            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`✅ web-features package loaded successfully with ${Object.keys(features).length} features`);
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -406,6 +417,78 @@ class BaselineService {
                 ],
                 dateSupported: '2022-03-01',
             },
+            'querySelectorAll': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '4' },
+                    { browser: 'firefox', version: '3.5' },
+                    { browser: 'safari', version: '3.2' },
+                    { browser: 'edge', version: '12' },
+                ],
+                dateSupported: '2009-03-01',
+            },
+            'addEventListener': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '1' },
+                    { browser: 'firefox', version: '1' },
+                    { browser: 'safari', version: '1' },
+                    { browser: 'edge', version: '12' },
+                ],
+                dateSupported: '2006-01-01',
+            },
+            'querySelector': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '4' },
+                    { browser: 'firefox', version: '3.5' },
+                    { browser: 'safari', version: '3.2' },
+                    { browser: 'edge', version: '12' },
+                ],
+                dateSupported: '2009-03-01',
+            },
+            'class': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '49' },
+                    { browser: 'firefox', version: '45' },
+                    { browser: 'safari', version: '9' },
+                    { browser: 'edge', version: '13' },
+                ],
+                dateSupported: '2016-04-01',
+            },
+            'const': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '21' },
+                    { browser: 'firefox', version: '36' },
+                    { browser: 'safari', version: '5.1' },
+                    { browser: 'edge', version: '12' },
+                ],
+                dateSupported: '2015-03-01',
+            },
+            'await': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '55' },
+                    { browser: 'firefox', version: '52' },
+                    { browser: 'safari', version: '10.1' },
+                    { browser: 'edge', version: '15' },
+                ],
+                dateSupported: '2017-03-01',
+            },
             'dialog': {
                 status: 'high',
                 isBaseline2023: true,
@@ -429,6 +512,78 @@ class BaselineService {
                     { browser: 'edge', version: '79' },
                 ],
                 dateSupported: '2022-03-01',
+            },
+            'details': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '12' },
+                    { browser: 'firefox', version: '49' },
+                    { browser: 'safari', version: '6' },
+                    { browser: 'edge', version: '79' },
+                ],
+                dateSupported: '2020-01-01',
+            },
+            'summary': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '12' },
+                    { browser: 'firefox', version: '49' },
+                    { browser: 'safari', version: '6' },
+                    { browser: 'edge', version: '79' },
+                ],
+                dateSupported: '2020-01-01',
+            },
+            'picture': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '38' },
+                    { browser: 'firefox', version: '38' },
+                    { browser: 'safari', version: '9.1' },
+                    { browser: 'edge', version: '13' },
+                ],
+                dateSupported: '2016-04-01',
+            },
+            'source': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '38' },
+                    { browser: 'firefox', version: '38' },
+                    { browser: 'safari', version: '9.1' },
+                    { browser: 'edge', version: '13' },
+                ],
+                dateSupported: '2016-04-01',
+            },
+            'aria-': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '4' },
+                    { browser: 'firefox', version: '3' },
+                    { browser: 'safari', version: '4' },
+                    { browser: 'edge', version: '12' },
+                ],
+                dateSupported: '2010-01-01',
+            },
+            'max': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '79' },
+                    { browser: 'firefox', version: '75' },
+                    { browser: 'safari', version: '13.1' },
+                    { browser: 'edge', version: '79' },
+                ],
+                dateSupported: '2020-03-01',
             },
         };
         const data = fallbackData[featureName];
