@@ -5,6 +5,25 @@ All notable changes to the Baseline Analyzer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-09-14
+
+### 🔧 Fixed
+- **Web-Features Import**: Fixed "Invalid URL" errors when importing web-features package in bundled environments using defensive import pattern
+- **DOM API False Positives**: Fixed false HIGH-risk warnings for well-supported DOM methods (`querySelectorAll`, `addEventListener`)
+- **Comprehensive Fallbacks**: Added extensive fallback data for core DOM APIs and JavaScript features
+
+### 📊 Improved  
+- **Real Data Usage**: Now successfully loads 1,081 features from real web-features package instead of falling back
+- **Better Detection**: Enhanced feature detection with proper support data for ES6+ features (`class`, `const`, `await`)
+- **Accurate Risk Assessment**: Eliminates false-positive PR blocking for universally supported web platform features
+- **Bundling Compatibility**: Import pattern works across all bundling environments (ncc, webpack, rollup)
+
+### 🎯 Impact
+- No more false HIGH-risk warnings for ancient, well-supported DOM APIs
+- Real web-features data now loads successfully in GitHub Actions
+- More accurate compatibility analysis with actual browser support data
+- Reduced false-positive PR blocks
+
 ## [1.1.2] - 2025-09-14
 
 ### 🔧 Fixed

@@ -52,12 +52,32 @@ export async function debugNpmPackages(): Promise<void> {
   
   // Test web-features package
   try {
-    // Use safer import pattern for bundled environments
+    // Import with comprehensive fallback handling for all bundling scenarios
     const webFeaturesModule = await import('web-features');
-    const webFeatures = (webFeaturesModule as any).default || webFeaturesModule;
     
-    if (webFeatures && typeof webFeatures === 'object') {
-      const { features, groups, browsers } = webFeatures;
+    // Handle ALL possible bundling scenarios with proper type casting
+    const webFeatures = 
+      (webFeaturesModule as any)?.default?.default ||  // Double-wrapped default
+      (webFeaturesModule as any)?.default ||           // Single default wrapper
+      webFeaturesModule;                               // Direct named exports
+
+    // Extract data with multiple fallback patterns
+    const features = 
+      webFeatures?.features ||                // Direct access
+      (webFeatures as any)?.default?.features ||       // Default wrapped
+      ((webFeatures as any).default && (webFeatures as any).default.features); // Nested default
+      
+    const groups = 
+      webFeatures?.groups ||
+      (webFeatures as any)?.default?.groups ||
+      ((webFeatures as any).default && (webFeatures as any).default.groups);
+      
+    const browsers = 
+      webFeatures?.browsers ||
+      (webFeatures as any)?.default?.browsers ||
+      ((webFeatures as any).default && (webFeatures as any).default.browsers);
+    
+    if (features && typeof features === 'object' && Object.keys(features).length > 0) {
       
       if (features && groups && browsers) {
         logger.info('✅ web-features package available');

@@ -29,16 +29,36 @@ export class BaselineService implements IBaselineService {
     }
     
     try {
-      // Try dynamic import with proper error handling
-      const webFeatures = await import('web-features');
+      // Import with comprehensive fallback handling for all bundling scenarios
+      const webFeaturesModule = await import('web-features');
       
-      // Access the features data correctly
-      this.webFeaturesData = {
-        features: webFeatures.features || (webFeatures as any).default?.features,
-        browsers: webFeatures.browsers || (webFeatures as any).default?.browsers
-      };
+      // Handle ALL possible bundling scenarios
+      const webFeatures = 
+        (webFeaturesModule as any)?.default?.default ||  // Double-wrapped default
+        (webFeaturesModule as any)?.default ||           // Single default wrapper
+        webFeaturesModule;                               // Direct named exports
+
+      // Extract data with multiple fallback patterns
+      const features = 
+        webFeatures?.features ||                         // Direct access
+        (webFeatures as any)?.default?.features ||       // Default wrapped
+        ((webFeatures as any).default && (webFeatures as any).default.features); // Nested default
+        
+      const browsers = 
+        webFeatures?.browsers ||
+        (webFeatures as any)?.default?.browsers ||
+        ((webFeatures as any).default && (webFeatures as any).default.browsers);
+
+      if (!features || typeof features !== 'object' || Object.keys(features).length === 0) {
+        logger.warn('web-features package loaded but no valid features data found');
+        this.webFeaturesData = null;
+        return;
+      }
+
+      // Store the successfully extracted data
+      this.webFeaturesData = { features, browsers };
       
-      logger.debug('web-features package loaded successfully');
+      logger.debug(`✅ web-features package loaded successfully with ${Object.keys(features).length} features`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.warn(`web-features package not available: ${errorMessage}`);
@@ -519,6 +539,85 @@ export class BaselineService implements IBaselineService {
         ],
         dateSupported: '2022-03-01',
       },
+
+      // DOM APIs - These are extremely well-supported core features
+      'querySelectorAll': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '4' },
+          { browser: 'firefox', version: '3.5' },
+          { browser: 'safari', version: '3.2' },
+          { browser: 'edge', version: '12' },
+        ],
+        dateSupported: '2009-03-01',
+      },
+
+      'addEventListener': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '1' },
+          { browser: 'firefox', version: '1' },
+          { browser: 'safari', version: '1' },
+          { browser: 'edge', version: '12' },
+        ],
+        dateSupported: '2006-01-01',
+      },
+
+      'querySelector': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '4' },
+          { browser: 'firefox', version: '3.5' },
+          { browser: 'safari', version: '3.2' },
+          { browser: 'edge', version: '12' },
+        ],
+        dateSupported: '2009-03-01',
+      },
+
+      'class': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '49' },
+          { browser: 'firefox', version: '45' },
+          { browser: 'safari', version: '9' },
+          { browser: 'edge', version: '13' },
+        ],
+        dateSupported: '2016-04-01',
+      },
+
+      'const': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '21' },
+          { browser: 'firefox', version: '36' },
+          { browser: 'safari', version: '5.1' },
+          { browser: 'edge', version: '12' },
+        ],
+        dateSupported: '2015-03-01',
+      },
+
+      'await': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '55' },
+          { browser: 'firefox', version: '52' },
+          { browser: 'safari', version: '10.1' },
+          { browser: 'edge', version: '15' },
+        ],
+        dateSupported: '2017-03-01',
+      },
       
       // HTML Features
       'dialog': {
@@ -545,6 +644,84 @@ export class BaselineService implements IBaselineService {
           { browser: 'edge', version: '79' },
         ],
         dateSupported: '2022-03-01',
+      },
+
+      'details': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '12' },
+          { browser: 'firefox', version: '49' },
+          { browser: 'safari', version: '6' },
+          { browser: 'edge', version: '79' },
+        ],
+        dateSupported: '2020-01-01',
+      },
+
+      'summary': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '12' },
+          { browser: 'firefox', version: '49' },
+          { browser: 'safari', version: '6' },
+          { browser: 'edge', version: '79' },
+        ],
+        dateSupported: '2020-01-01',
+      },
+
+      'picture': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '38' },
+          { browser: 'firefox', version: '38' },
+          { browser: 'safari', version: '9.1' },
+          { browser: 'edge', version: '13' },
+        ],
+        dateSupported: '2016-04-01',
+      },
+
+      'source': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '38' },
+          { browser: 'firefox', version: '38' },
+          { browser: 'safari', version: '9.1' },
+          { browser: 'edge', version: '13' },
+        ],
+        dateSupported: '2016-04-01',
+      },
+
+      'aria-': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '4' },
+          { browser: 'firefox', version: '3' },
+          { browser: 'safari', version: '4' },
+          { browser: 'edge', version: '12' },
+        ],
+        dateSupported: '2010-01-01',
+      },
+
+      'max': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '79' },
+          { browser: 'firefox', version: '75' },
+          { browser: 'safari', version: '13.1' },
+          { browser: 'edge', version: '79' },
+        ],
+        dateSupported: '2020-03-01',
       },
     };
     
