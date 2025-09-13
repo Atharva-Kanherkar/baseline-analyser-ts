@@ -31,27 +31,39 @@ export function debugGitHubPayload(payload) {
 export async function debugNpmPackages() {
     logger.info('=== NPM PACKAGES DEBUG ===');
     try {
-        const { features, groups, browsers } = await import('web-features');
-        logger.info('✅ web-features package available');
-        logger.info(`📊 Features count: ${Object.keys(features).length}`);
-        logger.info(`📊 Groups count: ${Object.keys(groups).length}`);
-        logger.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
-        const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
-        logger.info('🔍 Testing specific features:');
-        for (const featureId of testFeatures) {
-            const feature = features[featureId];
-            if (feature) {
-                logger.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
-                logger.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+        const webFeaturesModule = await import('web-features');
+        const webFeatures = webFeaturesModule.default || webFeaturesModule;
+        if (webFeatures && typeof webFeatures === 'object') {
+            const { features, groups, browsers } = webFeatures;
+            if (features && groups && browsers) {
+                logger.info('✅ web-features package available');
+                logger.info(`📊 Features count: ${Object.keys(features).length}`);
+                logger.info(`📊 Groups count: ${Object.keys(groups).length}`);
+                logger.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
+                const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
+                logger.info('🔍 Testing specific features:');
+                for (const featureId of testFeatures) {
+                    const feature = features[featureId];
+                    if (feature) {
+                        logger.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
+                        logger.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+                    }
+                    else {
+                        logger.info(`  ❌ ${featureId}: Not found`);
+                    }
+                }
+                logger.info('🔍 Available groups:');
+                Object.entries(groups).slice(0, 5).forEach(([id, group]) => {
+                    logger.info(`  📁 ${id}: ${group.name}`);
+                });
             }
             else {
-                logger.info(`  ❌ ${featureId}: Not found`);
+                logger.warn('❌ web-features: Invalid module structure');
             }
         }
-        logger.info('🔍 Available groups:');
-        Object.entries(groups).slice(0, 5).forEach(([id, group]) => {
-            logger.info(`  📁 ${id}: ${group.name}`);
-        });
+        else {
+            logger.warn('❌ web-features: Invalid module export');
+        }
     }
     catch (error) {
         logger.warn('❌ web-features package error:', error.message);

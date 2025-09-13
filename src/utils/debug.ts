@@ -52,31 +52,44 @@ export async function debugNpmPackages(): Promise<void> {
   
   // Test web-features package
   try {
-    const { features, groups, browsers } = await import('web-features');
-    logger.info('✅ web-features package available');
-    logger.info(`📊 Features count: ${Object.keys(features).length}`);
-    logger.info(`📊 Groups count: ${Object.keys(groups).length}`);
-    logger.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
+    // Use safer import pattern for bundled environments
+    const webFeaturesModule = await import('web-features');
+    const webFeatures = (webFeaturesModule as any).default || webFeaturesModule;
     
-    // Test some specific features we care about
-    const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
-    logger.info('🔍 Testing specific features:');
-    
-    for (const featureId of testFeatures) {
-      const feature = features[featureId];
-      if (feature) {
-        logger.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
-        logger.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+    if (webFeatures && typeof webFeatures === 'object') {
+      const { features, groups, browsers } = webFeatures;
+      
+      if (features && groups && browsers) {
+        logger.info('✅ web-features package available');
+        logger.info(`📊 Features count: ${Object.keys(features).length}`);
+        logger.info(`📊 Groups count: ${Object.keys(groups).length}`);
+        logger.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
+        
+        // Test some specific features we care about
+        const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
+        logger.info('🔍 Testing specific features:');
+        
+        for (const featureId of testFeatures) {
+          const feature = features[featureId];
+          if (feature) {
+            logger.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
+            logger.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+          } else {
+            logger.info(`  ❌ ${featureId}: Not found`);
+          }
+        }
+        
+        // Test groups
+        logger.info('🔍 Available groups:');
+        Object.entries(groups).slice(0, 5).forEach(([id, group]: [string, any]) => {
+          logger.info(`  📁 ${id}: ${group.name}`);
+        });
       } else {
-        logger.info(`  ❌ ${featureId}: Not found`);
+        logger.warn('❌ web-features: Invalid module structure');
       }
+    } else {
+      logger.warn('❌ web-features: Invalid module export');
     }
-    
-    // Test groups
-    logger.info('🔍 Available groups:');
-    Object.entries(groups).slice(0, 5).forEach(([id, group]: [string, any]) => {
-      logger.info(`  📁 ${id}: ${group.name}`);
-    });
     
   } catch (error) {
     logger.warn('❌ web-features package error:', (error as Error).message);

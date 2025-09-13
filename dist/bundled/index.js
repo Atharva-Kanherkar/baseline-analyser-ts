@@ -32711,27 +32711,39 @@ function debugGitHubPayload(payload) {
 async function debugNpmPackages() {
     logger/* logger */.v.info('=== NPM PACKAGES DEBUG ===');
     try {
-        const { features, groups, browsers } = await __nccwpck_require__.e(/* import() */ 197).then(__nccwpck_require__.bind(__nccwpck_require__, 3197));
-        logger/* logger */.v.info('✅ web-features package available');
-        logger/* logger */.v.info(`📊 Features count: ${Object.keys(features).length}`);
-        logger/* logger */.v.info(`📊 Groups count: ${Object.keys(groups).length}`);
-        logger/* logger */.v.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
-        const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
-        logger/* logger */.v.info('🔍 Testing specific features:');
-        for (const featureId of testFeatures) {
-            const feature = features[featureId];
-            if (feature) {
-                logger/* logger */.v.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
-                logger/* logger */.v.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+        const webFeaturesModule = await __nccwpck_require__.e(/* import() */ 197).then(__nccwpck_require__.bind(__nccwpck_require__, 3197));
+        const webFeatures = webFeaturesModule.default || webFeaturesModule;
+        if (webFeatures && typeof webFeatures === 'object') {
+            const { features, groups, browsers } = webFeatures;
+            if (features && groups && browsers) {
+                logger/* logger */.v.info('✅ web-features package available');
+                logger/* logger */.v.info(`📊 Features count: ${Object.keys(features).length}`);
+                logger/* logger */.v.info(`📊 Groups count: ${Object.keys(groups).length}`);
+                logger/* logger */.v.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
+                const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
+                logger/* logger */.v.info('🔍 Testing specific features:');
+                for (const featureId of testFeatures) {
+                    const feature = features[featureId];
+                    if (feature) {
+                        logger/* logger */.v.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
+                        logger/* logger */.v.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+                    }
+                    else {
+                        logger/* logger */.v.info(`  ❌ ${featureId}: Not found`);
+                    }
+                }
+                logger/* logger */.v.info('🔍 Available groups:');
+                Object.entries(groups).slice(0, 5).forEach(([id, group]) => {
+                    logger/* logger */.v.info(`  📁 ${id}: ${group.name}`);
+                });
             }
             else {
-                logger/* logger */.v.info(`  ❌ ${featureId}: Not found`);
+                logger/* logger */.v.warn('❌ web-features: Invalid module structure');
             }
         }
-        logger/* logger */.v.info('🔍 Available groups:');
-        Object.entries(groups).slice(0, 5).forEach(([id, group]) => {
-            logger/* logger */.v.info(`  📁 ${id}: ${group.name}`);
-        });
+        else {
+            logger/* logger */.v.warn('❌ web-features: Invalid module export');
+        }
     }
     catch (error) {
         logger/* logger */.v.warn('❌ web-features package error:', error.message);
