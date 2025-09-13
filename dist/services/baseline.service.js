@@ -1,6 +1,27 @@
 import { logger } from '../utils/logger.js';
 export class BaselineService {
     baselineCache = new Map();
+    webFeaturesData = null;
+    webFeaturesInitialized = false;
+    async initializeWebFeatures() {
+        if (this.webFeaturesInitialized) {
+            return;
+        }
+        try {
+            const webFeatures = await import('web-features');
+            this.webFeaturesData = {
+                features: webFeatures.features || webFeatures.default?.features,
+                browsers: webFeatures.browsers || webFeatures.default?.browsers
+            };
+            logger.debug('web-features package loaded successfully');
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.warn(`web-features package not available: ${errorMessage}`);
+            this.webFeaturesData = null;
+        }
+        this.webFeaturesInitialized = true;
+    }
     async getBaselineInfo(featureName) {
         if (this.baselineCache.has(featureName)) {
             return this.baselineCache.get(featureName) || null;
@@ -27,29 +48,17 @@ export class BaselineService {
     }
     async getFromWebFeaturesPackage(featureName) {
         try {
-            let webFeaturesModule;
-            try {
-                webFeaturesModule = await import('web-features');
-            }
-            catch (importError) {
-                logger.debug(`Failed to import web-features package: ${importError}`);
-                try {
-                    webFeaturesModule = await import('web-features/index.js');
-                }
-                catch (altImportError) {
-                    logger.debug(`Alternative import failed: ${altImportError}`);
-                    return null;
-                }
-            }
-            const features = webFeaturesModule?.features || webFeaturesModule?.default?.features;
-            if (!features) {
-                logger.debug('No features data found in web-features package');
+            await this.initializeWebFeatures();
+            if (!this.webFeaturesData || !this.webFeaturesData.features) {
+                logger.debug('No web-features data available');
                 return null;
             }
+            const features = this.webFeaturesData.features;
             const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
             for (const featureId of possibleIds) {
                 const feature = features[featureId];
                 if (feature && feature.status) {
+                    logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from web-features`);
                     logger.debug(`Found web-features data for: ${featureName} (id: ${featureId})`);
                     return this.convertWebFeatureToBaselineInfo(feature);
                 }

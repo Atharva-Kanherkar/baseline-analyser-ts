@@ -16,6 +16,38 @@ export class BaselineService implements IBaselineService {
   // Cache for baseline data to avoid repeated lookups
   private baselineCache = new Map<string, BaselineInfo | null>();
   
+  // Web-features data cache
+  private webFeaturesData: { features?: any; browsers?: any } | null = null;
+  private webFeaturesInitialized = false;
+  
+  /**
+   * Initialize web-features package with proper error handling
+   */
+  private async initializeWebFeatures(): Promise<void> {
+    if (this.webFeaturesInitialized) {
+      return;
+    }
+    
+    try {
+      // Try dynamic import with proper error handling
+      const webFeatures = await import('web-features');
+      
+      // Access the features data correctly
+      this.webFeaturesData = {
+        features: webFeatures.features || (webFeatures as any).default?.features,
+        browsers: webFeatures.browsers || (webFeatures as any).default?.browsers
+      };
+      
+      logger.debug('web-features package loaded successfully');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`web-features package not available: ${errorMessage}`);
+      this.webFeaturesData = null;
+    }
+    
+    this.webFeaturesInitialized = true;
+  }
+
   /**
    * Gets baseline compatibility info for a web platform feature
    */
@@ -67,26 +99,15 @@ export class BaselineService implements IBaselineService {
    */
   private async getFromWebFeaturesPackage(featureName: string): Promise<BaselineInfo | null> {
     try {
-      // Try to import the official web-features package
-      let webFeaturesModule;
-      try {
-        webFeaturesModule = await import('web-features');
-      } catch (importError) {
-        logger.debug(`Failed to import web-features package: ${importError}`);
-        // Try alternative import patterns
-        try {
-          webFeaturesModule = await import('web-features/index.js');
-        } catch (altImportError) {
-          logger.debug(`Alternative import failed: ${altImportError}`);
-          return null;
-        }
-      }
-
-      const features = webFeaturesModule?.features || (webFeaturesModule as any)?.default?.features;
-      if (!features) {
-        logger.debug('No features data found in web-features package');
+      // Initialize web-features with proper error handling
+      await this.initializeWebFeatures();
+      
+      if (!this.webFeaturesData || !this.webFeaturesData.features) {
+        logger.debug('No web-features data available');
         return null;
       }
+
+      const features = this.webFeaturesData.features;
       
       // Map our detected feature names to web-features IDs
       const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
@@ -94,6 +115,7 @@ export class BaselineService implements IBaselineService {
       for (const featureId of possibleIds) {
         const feature = features[featureId];
         if (feature && feature.status) {
+          logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from web-features`);
           logger.debug(`Found web-features data for: ${featureName} (id: ${featureId})`);
           return this.convertWebFeatureToBaselineInfo(feature);
         }

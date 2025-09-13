@@ -12,6 +12,27 @@ export const modules = {
 
 class BaselineService {
     baselineCache = new Map();
+    webFeaturesData = null;
+    webFeaturesInitialized = false;
+    async initializeWebFeatures() {
+        if (this.webFeaturesInitialized) {
+            return;
+        }
+        try {
+            const webFeatures = await __webpack_require__.e(/* import() */ 197).then(__webpack_require__.bind(__webpack_require__, 3197));
+            this.webFeaturesData = {
+                features: webFeatures.features || webFeatures.default?.features,
+                browsers: webFeatures.browsers || webFeatures.default?.browsers
+            };
+            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug('web-features package loaded successfully');
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.warn(`web-features package not available: ${errorMessage}`);
+            this.webFeaturesData = null;
+        }
+        this.webFeaturesInitialized = true;
+    }
     async getBaselineInfo(featureName) {
         if (this.baselineCache.has(featureName)) {
             return this.baselineCache.get(featureName) || null;
@@ -38,29 +59,17 @@ class BaselineService {
     }
     async getFromWebFeaturesPackage(featureName) {
         try {
-            let webFeaturesModule;
-            try {
-                webFeaturesModule = await __webpack_require__.e(/* import() */ 197).then(__webpack_require__.bind(__webpack_require__, 3197));
-            }
-            catch (importError) {
-                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Failed to import web-features package: ${importError}`);
-                try {
-                    webFeaturesModule = await Promise.resolve().then(function webpackMissingModule() { var e = new Error("Cannot find module 'web-features/index.js'"); e.code = 'MODULE_NOT_FOUND'; throw e; });
-                }
-                catch (altImportError) {
-                    _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Alternative import failed: ${altImportError}`);
-                    return null;
-                }
-            }
-            const features = webFeaturesModule?.features || webFeaturesModule?.default?.features;
-            if (!features) {
-                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug('No features data found in web-features package');
+            await this.initializeWebFeatures();
+            if (!this.webFeaturesData || !this.webFeaturesData.features) {
+                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug('No web-features data available');
                 return null;
             }
+            const features = this.webFeaturesData.features;
             const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
             for (const featureId of possibleIds) {
                 const feature = features[featureId];
                 if (feature && feature.status) {
+                    _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.info(`[DATA SOURCE] Using REAL data for '${featureName}' from web-features`);
                     _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Found web-features data for: ${featureName} (id: ${featureId})`);
                     return this.convertWebFeatureToBaselineInfo(feature);
                 }

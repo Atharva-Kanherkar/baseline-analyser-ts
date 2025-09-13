@@ -5,6 +5,23 @@ All notable changes to the Baseline Analyzer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-09-14
+
+### 🔧 Fixed
+- **web-features Import Error**: Fixed "TypeError: Invalid URL" error when importing web-features package in bundled environment
+- **Safer Import Pattern**: Implemented proper initialization method with error handling for web-features package
+- **Data Source Reliability**: Improved reliability of real data sourcing from web-features package
+
+### 📊 Improved
+- **Better Logging**: Added explicit `[DATA SOURCE] Using REAL data from web-features` logging for transparency
+- **Error Handling**: Enhanced error handling and graceful fallback when web-features package fails
+- **User Experience**: Cleaner logs with no more "Invalid URL" errors cluttering the output
+
+### 🎯 Impact
+- web-features package now works reliably in GitHub Actions environment
+- Users get cleaner, more professional log output
+- Better confidence in data source transparency with explicit logging
+
 ## [1.1.0] - 2025-09-13
 
 ### 🔧 Fixed
