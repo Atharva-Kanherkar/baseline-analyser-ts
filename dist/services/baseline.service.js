@@ -27,7 +27,25 @@ export class BaselineService {
     }
     async getFromWebFeaturesPackage(featureName) {
         try {
-            const { features } = await import('web-features');
+            let webFeaturesModule;
+            try {
+                webFeaturesModule = await import('web-features');
+            }
+            catch (importError) {
+                logger.debug(`Failed to import web-features package: ${importError}`);
+                try {
+                    webFeaturesModule = await import('web-features/index.js');
+                }
+                catch (altImportError) {
+                    logger.debug(`Alternative import failed: ${altImportError}`);
+                    return null;
+                }
+            }
+            const features = webFeaturesModule?.features || webFeaturesModule?.default?.features;
+            if (!features) {
+                logger.debug('No features data found in web-features package');
+                return null;
+            }
             const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
             for (const featureId of possibleIds) {
                 const feature = features[featureId];
@@ -40,13 +58,16 @@ export class BaselineService {
             if (bcdKey) {
                 try {
                     const computeBaseline = await import('compute-baseline');
-                    const getStatus = computeBaseline.getStatus;
+                    const getStatus = computeBaseline.getStatus || computeBaseline.default?.getStatus;
                     if (getStatus) {
                         const status = getStatus(null, bcdKey);
                         if (status) {
                             logger.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
                             return this.convertComputeBaselineToBaselineInfo(status);
                         }
+                    }
+                    else {
+                        logger.debug(`getStatus function not found in compute-baseline package`);
                     }
                 }
                 catch (error) {
@@ -57,7 +78,7 @@ export class BaselineService {
             return null;
         }
         catch (error) {
-            logger.warn(`Error accessing web-features package: ${error}`);
+            logger.debug(`Error accessing web-features package: ${error}`);
             return null;
         }
     }
@@ -207,6 +228,42 @@ export class BaselineService {
                 ],
                 dateSupported: '2017-03-01',
             },
+            'grid-template': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '57' },
+                    { browser: 'firefox', version: '52' },
+                    { browser: 'safari', version: '10.1' },
+                    { browser: 'edge', version: '16' },
+                ],
+                dateSupported: '2017-03-01',
+            },
+            'grid-template-columns': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '57' },
+                    { browser: 'firefox', version: '52' },
+                    { browser: 'safari', version: '10.1' },
+                    { browser: 'edge', version: '16' },
+                ],
+                dateSupported: '2017-03-01',
+            },
+            'container-name': {
+                status: 'limited',
+                isBaseline2023: false,
+                isWidelySupported: false,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '105' },
+                    { browser: 'firefox', version: '110' },
+                    { browser: 'safari', version: '16' },
+                    { browser: 'edge', version: '105' },
+                ],
+                dateSupported: '2023-02-01',
+            },
             'display: flex': {
                 status: 'high',
                 isBaseline2023: true,
@@ -302,6 +359,30 @@ export class BaselineService {
                     { browser: 'edge', version: '15' },
                 ],
                 dateSupported: '2019-03-01',
+            },
+            'ResizeObserver': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '64' },
+                    { browser: 'firefox', version: '69' },
+                    { browser: 'safari', version: '13.1' },
+                    { browser: 'edge', version: '79' },
+                ],
+                dateSupported: '2020-01-01',
+            },
+            'structuredClone': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '98' },
+                    { browser: 'firefox', version: '94' },
+                    { browser: 'safari', version: '15.4' },
+                    { browser: 'edge', version: '98' },
+                ],
+                dateSupported: '2022-03-01',
             },
             'dialog': {
                 status: 'high',

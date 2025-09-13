@@ -32,11 +32,11 @@ read -p "Press Enter to continue or Ctrl+C to abort..."
 
 # Build the project
 echo ""
-echo "🔧 Building the project..."
-npm run build
+echo "🔧 Building and bundling the project..."
+npm run bundle
 
 if [ $? -ne 0 ]; then
-    echo "❌ Build failed. Please fix build errors and try again."
+    echo "❌ Build/bundle failed. Please fix build errors and try again."
     exit 1
 fi
 

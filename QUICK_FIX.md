@@ -24,7 +24,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0  # Correct name!
+    - uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.1  # Fixed version!
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 ```

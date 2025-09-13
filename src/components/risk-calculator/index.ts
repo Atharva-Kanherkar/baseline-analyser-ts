@@ -84,19 +84,28 @@ export class RiskCalculator implements IRiskCalculator {
     baseline: BaselineInfo | null,
     context: PRContext
   ): RiskLevel {
-    // If we have no baseline data, assume it's risky
+    // Debug logging
+    logger.debug(`Calculating risk for feature: ${feature.name}`);
+    logger.debug(`Baseline data:`, baseline);
+    
+    // If we have no baseline data, assume medium risk instead of high
+    // This prevents false positives for features that just aren't in our database
     if (!baseline) {
-      return 'HIGH';
+      logger.warn(`No baseline data found for ${feature.name}, assuming MEDIUM risk. Consider adding to fallback data.`);
+      return 'MEDIUM';
     }
     
     // Risk matrix based on baseline status
     const baseRisk = this.getBaseRiskFromBaseline(baseline);
+    logger.debug(`Base risk for ${feature.name}: ${baseRisk} (baseline status: ${baseline.status})`);
     
     // Adjust risk based on PR context
     const contextAdjustedRisk = this.adjustRiskForContext(baseRisk, context);
+    logger.debug(`Context-adjusted risk for ${feature.name}: ${contextAdjustedRisk}`);
     
     // Adjust risk based on feature type and location
     const finalRisk = this.adjustRiskForFeature(contextAdjustedRisk, feature);
+    logger.debug(`Final risk for ${feature.name}: ${finalRisk}`);
     
     return finalRisk;
   }
@@ -147,18 +156,23 @@ export class RiskCalculator implements IRiskCalculator {
    */
   private getBaseRiskFromBaseline(baseline: BaselineInfo): RiskLevel {
     // High baseline = low risk
-    if (baseline.status === 'high' && baseline.isWidelySupported) {
-      return 'LOW';
+    if (baseline.status === 'high') {
+      return baseline.isWidelySupported ? 'LOW' : 'MEDIUM';
     }
     
-    // Limited baseline = medium to high risk
+    // Limited baseline = medium risk (more reasonable than blocking PRs)
     if (baseline.status === 'limited') {
-      return baseline.isBaseline2023 ? 'MEDIUM' : 'HIGH';
+      return 'MEDIUM';
     }
     
-    // Low or unknown baseline = high risk
-    if (baseline.status === 'low' || baseline.status === 'unknown') {
+    // Low baseline = high risk (actually problematic features)
+    if (baseline.status === 'low') {
       return 'HIGH';
+    }
+    
+    // Unknown baseline = medium risk (don't block PRs for missing data)
+    if (baseline.status === 'unknown') {
+      return 'MEDIUM';
     }
     
     return 'MEDIUM';

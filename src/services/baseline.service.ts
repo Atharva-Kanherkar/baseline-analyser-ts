@@ -67,8 +67,26 @@ export class BaselineService implements IBaselineService {
    */
   private async getFromWebFeaturesPackage(featureName: string): Promise<BaselineInfo | null> {
     try {
-      // Import the official web-features package
-      const { features } = await import('web-features');
+      // Try to import the official web-features package
+      let webFeaturesModule;
+      try {
+        webFeaturesModule = await import('web-features');
+      } catch (importError) {
+        logger.debug(`Failed to import web-features package: ${importError}`);
+        // Try alternative import patterns
+        try {
+          webFeaturesModule = await import('web-features/index.js');
+        } catch (altImportError) {
+          logger.debug(`Alternative import failed: ${altImportError}`);
+          return null;
+        }
+      }
+
+      const features = webFeaturesModule?.features || (webFeaturesModule as any)?.default?.features;
+      if (!features) {
+        logger.debug('No features data found in web-features package');
+        return null;
+      }
       
       // Map our detected feature names to web-features IDs
       const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
@@ -86,7 +104,7 @@ export class BaselineService implements IBaselineService {
       if (bcdKey) {
         try {
           const computeBaseline = await import('compute-baseline');
-          const getStatus = (computeBaseline as any).getStatus;
+          const getStatus = (computeBaseline as any).getStatus || (computeBaseline as any).default?.getStatus;
           
           if (getStatus) {
             const status = getStatus(null, bcdKey);
@@ -95,6 +113,8 @@ export class BaselineService implements IBaselineService {
               logger.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
               return this.convertComputeBaselineToBaselineInfo(status);
             }
+          } else {
+            logger.debug(`getStatus function not found in compute-baseline package`);
           }
         } catch (error) {
           logger.debug(`Error using compute-baseline for ${bcdKey}: ${error}`);
@@ -105,7 +125,8 @@ export class BaselineService implements IBaselineService {
       return null;
       
     } catch (error) {
-      logger.warn(`Error accessing web-features package: ${error}`);
+      logger.debug(`Error accessing web-features package: ${error}`);
+      // Don't log as warning since fallback data works fine
       return null;
     }
   }
@@ -305,6 +326,45 @@ export class BaselineService implements IBaselineService {
         dateSupported: '2017-03-01',
       },
       
+      'grid-template': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '57' },
+          { browser: 'firefox', version: '52' },
+          { browser: 'safari', version: '10.1' },
+          { browser: 'edge', version: '16' },
+        ],
+        dateSupported: '2017-03-01',
+      },
+      
+      'grid-template-columns': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '57' },
+          { browser: 'firefox', version: '52' },
+          { browser: 'safari', version: '10.1' },
+          { browser: 'edge', version: '16' },
+        ],
+        dateSupported: '2017-03-01',
+      },
+      
+      'container-name': {
+        status: 'limited' as BaselineStatus,
+        isBaseline2023: false,
+        isWidelySupported: false,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '105' },
+          { browser: 'firefox', version: '110' },
+          { browser: 'safari', version: '16' },
+          { browser: 'edge', version: '105' },
+        ],
+        dateSupported: '2023-02-01',
+      },
+      
       'display: flex': {
         status: 'high' as BaselineStatus,
         isBaseline2023: true,
@@ -408,6 +468,32 @@ export class BaselineService implements IBaselineService {
           { browser: 'edge', version: '15' },
         ],
         dateSupported: '2019-03-01',
+      },
+      
+      'ResizeObserver': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '64' },
+          { browser: 'firefox', version: '69' },
+          { browser: 'safari', version: '13.1' },
+          { browser: 'edge', version: '79' },
+        ],
+        dateSupported: '2020-01-01',
+      },
+      
+      'structuredClone': {
+        status: 'high' as BaselineStatus,
+        isBaseline2023: true,
+        isWidelySupported: true,
+        supportedBrowsers: [
+          { browser: 'chrome', version: '98' },
+          { browser: 'firefox', version: '94' },
+          { browser: 'safari', version: '15.4' },
+          { browser: 'edge', version: '98' },
+        ],
+        dateSupported: '2022-03-01',
       },
       
       // HTML Features

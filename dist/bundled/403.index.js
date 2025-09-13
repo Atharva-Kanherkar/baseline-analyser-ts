@@ -38,7 +38,25 @@ class BaselineService {
     }
     async getFromWebFeaturesPackage(featureName) {
         try {
-            const { features } = await __webpack_require__.e(/* import() */ 197).then(__webpack_require__.bind(__webpack_require__, 3197));
+            let webFeaturesModule;
+            try {
+                webFeaturesModule = await __webpack_require__.e(/* import() */ 197).then(__webpack_require__.bind(__webpack_require__, 3197));
+            }
+            catch (importError) {
+                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Failed to import web-features package: ${importError}`);
+                try {
+                    webFeaturesModule = await Promise.resolve().then(function webpackMissingModule() { var e = new Error("Cannot find module 'web-features/index.js'"); e.code = 'MODULE_NOT_FOUND'; throw e; });
+                }
+                catch (altImportError) {
+                    _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Alternative import failed: ${altImportError}`);
+                    return null;
+                }
+            }
+            const features = webFeaturesModule?.features || webFeaturesModule?.default?.features;
+            if (!features) {
+                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug('No features data found in web-features package');
+                return null;
+            }
             const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
             for (const featureId of possibleIds) {
                 const feature = features[featureId];
@@ -51,13 +69,16 @@ class BaselineService {
             if (bcdKey) {
                 try {
                     const computeBaseline = await __webpack_require__.e(/* import() */ 173).then(__webpack_require__.bind(__webpack_require__, 7173));
-                    const getStatus = computeBaseline.getStatus;
+                    const getStatus = computeBaseline.getStatus || computeBaseline.default?.getStatus;
                     if (getStatus) {
                         const status = getStatus(null, bcdKey);
                         if (status) {
                             _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
                             return this.convertComputeBaselineToBaselineInfo(status);
                         }
+                    }
+                    else {
+                        _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`getStatus function not found in compute-baseline package`);
                     }
                 }
                 catch (error) {
@@ -68,7 +89,7 @@ class BaselineService {
             return null;
         }
         catch (error) {
-            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.warn(`Error accessing web-features package: ${error}`);
+            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Error accessing web-features package: ${error}`);
             return null;
         }
     }
@@ -218,6 +239,42 @@ class BaselineService {
                 ],
                 dateSupported: '2017-03-01',
             },
+            'grid-template': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '57' },
+                    { browser: 'firefox', version: '52' },
+                    { browser: 'safari', version: '10.1' },
+                    { browser: 'edge', version: '16' },
+                ],
+                dateSupported: '2017-03-01',
+            },
+            'grid-template-columns': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '57' },
+                    { browser: 'firefox', version: '52' },
+                    { browser: 'safari', version: '10.1' },
+                    { browser: 'edge', version: '16' },
+                ],
+                dateSupported: '2017-03-01',
+            },
+            'container-name': {
+                status: 'limited',
+                isBaseline2023: false,
+                isWidelySupported: false,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '105' },
+                    { browser: 'firefox', version: '110' },
+                    { browser: 'safari', version: '16' },
+                    { browser: 'edge', version: '105' },
+                ],
+                dateSupported: '2023-02-01',
+            },
             'display: flex': {
                 status: 'high',
                 isBaseline2023: true,
@@ -313,6 +370,30 @@ class BaselineService {
                     { browser: 'edge', version: '15' },
                 ],
                 dateSupported: '2019-03-01',
+            },
+            'ResizeObserver': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '64' },
+                    { browser: 'firefox', version: '69' },
+                    { browser: 'safari', version: '13.1' },
+                    { browser: 'edge', version: '79' },
+                ],
+                dateSupported: '2020-01-01',
+            },
+            'structuredClone': {
+                status: 'high',
+                isBaseline2023: true,
+                isWidelySupported: true,
+                supportedBrowsers: [
+                    { browser: 'chrome', version: '98' },
+                    { browser: 'firefox', version: '94' },
+                    { browser: 'safari', version: '15.4' },
+                    { browser: 'edge', version: '98' },
+                ],
+                dateSupported: '2022-03-01',
             },
             'dialog': {
                 status: 'high',

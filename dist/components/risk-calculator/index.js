@@ -25,12 +25,18 @@ export class RiskCalculator {
         return assessments;
     }
     calculateRisk(feature, baseline, context) {
+        logger.debug(`Calculating risk for feature: ${feature.name}`);
+        logger.debug(`Baseline data:`, baseline);
         if (!baseline) {
-            return 'HIGH';
+            logger.warn(`No baseline data found for ${feature.name}, assuming MEDIUM risk. Consider adding to fallback data.`);
+            return 'MEDIUM';
         }
         const baseRisk = this.getBaseRiskFromBaseline(baseline);
+        logger.debug(`Base risk for ${feature.name}: ${baseRisk} (baseline status: ${baseline.status})`);
         const contextAdjustedRisk = this.adjustRiskForContext(baseRisk, context);
+        logger.debug(`Context-adjusted risk for ${feature.name}: ${contextAdjustedRisk}`);
         const finalRisk = this.adjustRiskForFeature(contextAdjustedRisk, feature);
+        logger.debug(`Final risk for ${feature.name}: ${finalRisk}`);
         return finalRisk;
     }
     determineAction(risk, prSize, config) {
@@ -58,14 +64,17 @@ export class RiskCalculator {
         return 'NONE';
     }
     getBaseRiskFromBaseline(baseline) {
-        if (baseline.status === 'high' && baseline.isWidelySupported) {
-            return 'LOW';
+        if (baseline.status === 'high') {
+            return baseline.isWidelySupported ? 'LOW' : 'MEDIUM';
         }
         if (baseline.status === 'limited') {
-            return baseline.isBaseline2023 ? 'MEDIUM' : 'HIGH';
+            return 'MEDIUM';
         }
-        if (baseline.status === 'low' || baseline.status === 'unknown') {
+        if (baseline.status === 'low') {
             return 'HIGH';
+        }
+        if (baseline.status === 'unknown') {
+            return 'MEDIUM';
         }
         return 'MEDIUM';
     }

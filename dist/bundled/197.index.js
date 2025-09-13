@@ -5,12 +5,13 @@ export const modules = {
 /***/ 3197:
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
+__webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   browsers: () => (/* binding */ browsers),
 /* harmony export */   features: () => (/* binding */ features),
-/* harmony export */   groups: () => (/* binding */ groups)
+/* harmony export */   groups: () => (/* binding */ groups),
+/* harmony export */   snapshots: () => (/* binding */ snapshots)
 /* harmony export */ });
-/* unused harmony export snapshots */
 /* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(3024);
 /* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3136);
 
