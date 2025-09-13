@@ -34,7 +34,7 @@ fi
 
 # Create and push the tag
 echo "🏷️  Creating release tag..."
-git tag -a v1.1.0 -m "Release v1.1.0: Improved Risk Assessment
+git tag -a v1.1.1 -m "Release v1.1.1: Improved Risk Assessment
 
 🔧 Fixed overly aggressive risk assessment
 📊 Enhanced baseline data coverage  
@@ -45,10 +45,10 @@ After: MEDIUM RISK: 4 compatibility concerns (accurate assessment)"
 
 echo "📡 Pushing to GitHub..."
 git push origin $CURRENT_BRANCH
-git push origin v1.1.0
+git push origin v1.1.1
 
 echo ""
-echo "✅ Release v1.1.0 prepared successfully!"
+echo "✅ Release v1.1.1 prepared successfully!"
 echo ""
 echo "🌐 Next steps:"
 echo "1. Go to: https://github.com/Atharva-Kanherkar/baseline-analyser-ts/releases/new"

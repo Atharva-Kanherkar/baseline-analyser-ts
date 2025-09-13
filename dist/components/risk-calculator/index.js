@@ -40,6 +40,9 @@ export class RiskCalculator {
         return finalRisk;
     }
     determineAction(risk, prSize, config) {
+        if (risk === 'HIGH') {
+            logger.warn(`🚨 HIGH RISK feature detected - will need fallbacks or consideration`);
+        }
         if (risk === 'CRITICAL') {
             return 'BLOCK_PR';
         }

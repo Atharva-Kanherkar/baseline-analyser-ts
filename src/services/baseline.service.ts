@@ -110,6 +110,7 @@ export class BaselineService implements IBaselineService {
             const status = getStatus(null, bcdKey);
             
             if (status) {
+              logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from compute-baseline`);
               logger.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
               return this.convertComputeBaselineToBaselineInfo(status);
             }
@@ -311,6 +312,7 @@ export class BaselineService implements IBaselineService {
    * This ensures the analyzer works even without NPM packages
    */
   private getFallbackBaselineData(featureName: string): BaselineInfo | null {
+    logger.warn(`[DATA SOURCE] Using FALLBACK data for '${featureName}'`);
     const fallbackData: Record<string, BaselineInfo> = {
       // CSS Features
       'display: grid': {

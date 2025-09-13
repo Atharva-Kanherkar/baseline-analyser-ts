@@ -118,6 +118,10 @@ export class RiskCalculator implements IRiskCalculator {
     prSize: string, 
     config: AnalyzerConfig
   ): ActionType {
+    // Debug logging for HIGH risk features
+    if (risk === 'HIGH') {
+      logger.warn(`🚨 HIGH RISK feature detected - will need fallbacks or consideration`);
+    }
     // For CRITICAL risks, always block
     if (risk === 'CRITICAL') {
       return 'BLOCK_PR';

@@ -32405,6 +32405,9 @@ class RiskCalculator {
         return finalRisk;
     }
     determineAction(risk, prSize, config) {
+        if (risk === 'HIGH') {
+            logger/* logger */.v.warn(`🚨 HIGH RISK feature detected - will need fallbacks or consideration`);
+        }
         if (risk === 'CRITICAL') {
             return 'BLOCK_PR';
         }
@@ -32610,6 +32613,13 @@ class BaselineAnalyzer {
         const criticalCount = risks.filter(r => r.risk === 'CRITICAL').length;
         const highCount = risks.filter(r => r.risk === 'HIGH').length;
         const mediumCount = risks.filter(r => r.risk === 'MEDIUM').length;
+        const highRiskFeatures = risks.filter(r => r.risk === 'HIGH');
+        if (highRiskFeatures.length > 0) {
+            logger/* logger */.v.warn(`🚨 HIGH RISK FEATURES DETECTED:`);
+            highRiskFeatures.forEach(assessment => {
+                logger/* logger */.v.warn(`   - ${assessment.feature.name} (baseline: ${assessment.baseline?.status}) - ${assessment.reason}`);
+            });
+        }
         if (criticalCount > 0) {
             return {
                 action: 'BLOCK_PR',

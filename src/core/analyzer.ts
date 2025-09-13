@@ -174,6 +174,15 @@ export class BaselineAnalyzer {
     const highCount = risks.filter(r => r.risk === 'HIGH').length;
     const mediumCount = risks.filter(r => r.risk === 'MEDIUM').length;
     
+    // Log HIGH risk features for debugging
+    const highRiskFeatures = risks.filter(r => r.risk === 'HIGH');
+    if (highRiskFeatures.length > 0) {
+      logger.warn(`🚨 HIGH RISK FEATURES DETECTED:`);
+      highRiskFeatures.forEach(assessment => {
+        logger.warn(`   - ${assessment.feature.name} (baseline: ${assessment.baseline?.status}) - ${assessment.reason}`);
+      });
+    }
+    
     // Decision logic based on highest severity
     if (criticalCount > 0) {
       return {

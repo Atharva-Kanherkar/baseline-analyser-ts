@@ -62,6 +62,7 @@ export class BaselineService {
                     if (getStatus) {
                         const status = getStatus(null, bcdKey);
                         if (status) {
+                            logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from compute-baseline`);
                             logger.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
                             return this.convertComputeBaselineToBaselineInfo(status);
                         }
@@ -215,6 +216,7 @@ export class BaselineService {
         };
     }
     getFallbackBaselineData(featureName) {
+        logger.warn(`[DATA SOURCE] Using FALLBACK data for '${featureName}'`);
         const fallbackData = {
             'display: grid': {
                 status: 'high',

@@ -73,6 +73,7 @@ class BaselineService {
                     if (getStatus) {
                         const status = getStatus(null, bcdKey);
                         if (status) {
+                            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.info(`[DATA SOURCE] Using REAL data for '${featureName}' from compute-baseline`);
                             _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
                             return this.convertComputeBaselineToBaselineInfo(status);
                         }
@@ -226,6 +227,7 @@ class BaselineService {
         };
     }
     getFallbackBaselineData(featureName) {
+        _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.warn(`[DATA SOURCE] Using FALLBACK data for '${featureName}'`);
         const fallbackData = {
             'display: grid': {
                 status: 'high',
