@@ -110,6 +110,7 @@ temp/
 
 # Build outputs that should be committed for GitHub Actions
 # NOTE: We keep dist/ because GitHub Actions need the compiled JavaScript
+# The bundled files are especially important for GitHub Actions
 # dist/
 
 # Test outputs

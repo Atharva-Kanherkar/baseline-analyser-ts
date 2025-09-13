@@ -31,7 +31,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - uses: atharva/baseline-analyzer-ts@v1.0.0
+    - uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -61,7 +61,7 @@ The analyzer will automatically comment with compatibility analysis!
 ### Basic Configuration
 
 ```yaml
-- uses: atharva/baseline-analyzer-ts@v1.0.0
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     # How many files before PR is considered "large"
@@ -75,7 +75,7 @@ The analyzer will automatically comment with compatibility analysis!
 ### Advanced Configuration
 
 ```yaml
-- uses: atharva/baseline-analyzer-ts@v1.0.0
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
     
@@ -92,7 +92,7 @@ The analyzer will automatically comment with compatibility analysis!
 
 ```yaml
 # Strict mode for production code
-- uses: atharva/baseline-analyzer-ts@v1.0.0
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0
   if: contains(github.head_ref, 'main') || contains(github.head_ref, 'release/')
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -100,7 +100,7 @@ The analyzer will automatically comment with compatibility analysis!
     target-browsers: "chrome >= 85, firefox >= 80, safari >= 13"
 
 # Lenient mode for experimental features  
-- uses: atharva/baseline-analyzer-ts@v1.0.0
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0
   if: contains(github.head_ref, 'experimental/')
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -197,7 +197,7 @@ exclude-patterns: "packages/legacy/**"
 ## 🚨 Troubleshooting
 
 ### "Action not found"
-**Problem**: Can't find `atharva/baseline-analyzer-ts@v1.0.0`  
+**Problem**: Can't find `Atharva-Kanherkar/baseline-analyser-ts@v1.0.0`  
 **Solution**: Check the repository is public and the tag exists
 
 ### "Permission denied"
@@ -250,10 +250,10 @@ severity-filter: "high"  # Only serious compatibility issues
 
 ```yaml
 # Always use latest version
-- uses: atharva/baseline-analyzer-ts@v1  # Auto-updates to latest v1.x.x
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1  # Auto-updates to latest v1.x.x
 
 # Or pin to specific version
-- uses: atharva/baseline-analyzer-ts@v1.2.0  # Specific version
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1.2.0  # Specific version
 ```
 
 ### Baseline Data Updates

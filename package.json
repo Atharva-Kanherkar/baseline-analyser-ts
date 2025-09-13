@@ -8,6 +8,8 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "build:watch": "tsc --watch",
+    "bundle": "npm run build && ncc build dist/actions/main.js -o dist/bundled --source-map",
+    "package": "npm run bundle",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "jest",
@@ -49,7 +51,7 @@
     "@types/node": "^20.8.0",
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
-    "@vercel/ncc": "^0.38.0",
+    "@vercel/ncc": "^0.38.3",
     "eslint": "^8.50.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
