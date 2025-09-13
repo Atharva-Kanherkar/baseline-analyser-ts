@@ -30,7 +30,43 @@ class BaselineService {
                 webFeatures?.default?.browsers ||
                 (webFeatures.default && webFeatures.default.browsers);
             if (!features || typeof features !== 'object' || Object.keys(features).length === 0) {
-                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.warn('web-features package loaded but no valid features data found');
+                _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.warn('web-features package loaded but no valid features data found, trying direct file access');
+                try {
+                    const { readFileSync } = await Promise.resolve(/* import() */).then(__webpack_require__.t.bind(__webpack_require__, 9896, 19));
+                    const { fileURLToPath } = await Promise.resolve(/* import() */).then(__webpack_require__.t.bind(__webpack_require__, 7016, 19));
+                    const path = await Promise.resolve(/* import() */).then(__webpack_require__.t.bind(__webpack_require__, 6928, 19));
+                    const possiblePaths = [
+                        'node_modules/web-features/data.json',
+                        './data.json',
+                        '../data.json',
+                        '../../node_modules/web-features/data.json'
+                    ];
+                    let data = null;
+                    for (const relativePath of possiblePaths) {
+                        try {
+                            const __dirname = path.dirname(fileURLToPath(import.meta.url));
+                            const dataPath = path.resolve(__dirname, relativePath);
+                            const rawData = readFileSync(dataPath, 'utf-8');
+                            data = JSON.parse(rawData);
+                            _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`✅ Found web-features data at: ${relativePath}`);
+                            break;
+                        }
+                        catch (err) {
+                            continue;
+                        }
+                    }
+                    if (data && data.features && Object.keys(data.features).length > 0) {
+                        this.webFeaturesData = {
+                            features: data.features,
+                            browsers: data.browsers
+                        };
+                        _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`✅ web-features data loaded directly from file with ${Object.keys(data.features).length} features`);
+                        return;
+                    }
+                }
+                catch (err) {
+                    _utils_logger_js__WEBPACK_IMPORTED_MODULE_0__/* .logger */ .v.debug(`Direct file access failed: ${err instanceof Error ? err.message : String(err)}`);
+                }
                 this.webFeaturesData = null;
                 return;
             }
