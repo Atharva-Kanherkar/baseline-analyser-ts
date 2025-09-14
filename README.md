@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: Atharva-Kanherkar/baseline-analyser-ts@v1.3.3
+      - uses: Atharva-Kanherkar/baseline-analyser-ts@v1.3.4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           blocking-level: 'warning'
