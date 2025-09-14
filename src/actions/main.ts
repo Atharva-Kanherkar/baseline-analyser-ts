@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { BaselineAnalyzer } from '../core/analyzer.js';
 import { AnalyzerConfig, CodeChange } from '../core/types.js';
+import type { RiskLevel } from '../core/types.js';
 import { logger } from '../utils/logger.js';
 import { debugGitHubPayload, debugWebPlatformAPI } from '../utils/debug.js';
 
@@ -15,6 +16,24 @@ import { debugGitHubPayload, debugWebPlatformAPI } from '../utils/debug.js';
  * 4. Posts results back to GitHub
  * 5. Sets appropriate exit codes for blocking
  */
+
+/**
+ * Maps action.yml blocking-level values to internal enum values
+ */
+function mapBlockingLevel(blockingLevel: string): RiskLevel {
+  switch (blockingLevel.toLowerCase()) {
+    case 'none':
+      return 'IGNORE';
+    case 'warning':
+      return 'MEDIUM';
+    case 'error':
+      return 'HIGH';
+    case 'critical':
+      return 'CRITICAL';
+    default:
+      return 'MEDIUM'; // Default to warning level
+  }
+}
 
 /**
  * Main GitHub Actions entry point
@@ -82,7 +101,7 @@ function getConfigFromInputs(): AnalyzerConfig {
   
   const config: AnalyzerConfig = {
     targetBrowsers,
-    blockingLevel: (core.getInput('blocking-level') as any) || 'HIGH',
+    blockingLevel: mapBlockingLevel(core.getInput('blocking-level') || 'warning'),
     largePRThreshold: parseInt(core.getInput('large-pr-threshold') || '20'),
     hugePRThreshold: parseInt(core.getInput('huge-pr-threshold') || '50'),
     enableAIReview: core.getBooleanInput('enable-ai-review'),

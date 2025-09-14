@@ -32821,6 +32821,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 
 
+function mapBlockingLevel(blockingLevel) {
+    switch (blockingLevel.toLowerCase()) {
+        case 'none':
+            return 'IGNORE';
+        case 'warning':
+            return 'MEDIUM';
+        case 'error':
+            return 'HIGH';
+        case 'critical':
+            return 'CRITICAL';
+        default:
+            return 'MEDIUM';
+    }
+}
 async function run() {
     try {
         logger/* logger */.v.info('🚀 GitHub Actions Baseline Analyzer starting...');
@@ -32862,7 +32876,7 @@ function getConfigFromInputs() {
     }
     const config = {
         targetBrowsers,
-        blockingLevel: core.getInput('blocking-level') || 'HIGH',
+        blockingLevel: mapBlockingLevel(core.getInput('blocking-level') || 'warning'),
         largePRThreshold: parseInt(core.getInput('large-pr-threshold') || '20'),
         hugePRThreshold: parseInt(core.getInput('huge-pr-threshold') || '50'),
         enableAIReview: core.getBooleanInput('enable-ai-review'),

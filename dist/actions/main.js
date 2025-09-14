@@ -3,6 +3,20 @@ import * as github from '@actions/github';
 import { BaselineAnalyzer } from '../core/analyzer.js';
 import { logger } from '../utils/logger.js';
 import { debugGitHubPayload, debugWebPlatformAPI } from '../utils/debug.js';
+function mapBlockingLevel(blockingLevel) {
+    switch (blockingLevel.toLowerCase()) {
+        case 'none':
+            return 'IGNORE';
+        case 'warning':
+            return 'MEDIUM';
+        case 'error':
+            return 'HIGH';
+        case 'critical':
+            return 'CRITICAL';
+        default:
+            return 'MEDIUM';
+    }
+}
 export async function run() {
     try {
         logger.info('🚀 GitHub Actions Baseline Analyzer starting...');
@@ -44,7 +58,7 @@ function getConfigFromInputs() {
     }
     const config = {
         targetBrowsers,
-        blockingLevel: core.getInput('blocking-level') || 'HIGH',
+        blockingLevel: mapBlockingLevel(core.getInput('blocking-level') || 'warning'),
         largePRThreshold: parseInt(core.getInput('large-pr-threshold') || '20'),
         hugePRThreshold: parseInt(core.getInput('huge-pr-threshold') || '50'),
         enableAIReview: core.getBooleanInput('enable-ai-review'),

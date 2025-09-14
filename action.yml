@@ -1,10 +1,10 @@
 name: 'Web Platform Baseline Analyzer'
-description: 'Analyzes PRs for web platform compatibility issues using latest baseline data from web-features package'
-author: 'atharva'
+description: '🔍 Automatically catch browser compatibility issues in pull requests using real-time Web Platform Status API data'
+author: 'Atharva Kanherkar'
 
 branding:
   icon: 'search'
-  color: 'blue'
+  color: 'orange'
 
 inputs:
   github-token:
@@ -18,13 +18,9 @@ inputs:
     default: 'chrome >= 90, firefox >= 88, safari >= 14, edge >= 90'
   
   blocking-level:
-    description: 'Blocking level for PR analysis (none, warning, error)'
+    description: 'Action behavior: none (comments only), warning (recommended), error (block high risk), critical (block critical only)'
     required: false
     default: 'warning'
-  severity-filter:
-    description: 'Minimum severity to report (low, medium, high, critical)'
-    required: false
-    default: 'medium'
   
   large-pr-threshold:
     description: 'Number of files that constitute a large PR'
