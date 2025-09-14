@@ -27,7 +27,7 @@ class BaselineService {
                         signal: controller.signal,
                         headers: {
                             'Accept': 'application/json',
-                            'User-Agent': 'baseline-analyzer-ts/1.0.0'
+                            'User-Agent': 'baseline-analyzer-ts/1.2.0'
                         }
                     });
                     clearTimeout(timeoutId);
@@ -67,7 +67,7 @@ class BaselineService {
                     signal: controller.signal,
                     headers: {
                         'Accept': 'application/json',
-                        'User-Agent': 'baseline-analyzer-ts/1.0.0'
+                        'User-Agent': 'baseline-analyzer-ts/1.2.0'
                     }
                 });
                 clearTimeout(timeoutId);
