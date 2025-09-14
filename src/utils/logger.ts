@@ -1,7 +1,3 @@
-/**
- * Simple logger utility for the analyzer
- * In production, this could be replaced with structured logging
- */
 export class Logger {
   private prefix = '[Baseline-Analyzer]';
 

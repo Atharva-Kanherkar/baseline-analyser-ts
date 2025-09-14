@@ -1,14 +1,8 @@
 import type { DetectedFeature, BaselineInfo, RiskAssessment, PRContext, AIAnalysis } from '../core/types.js';
 import { logger } from '../utils/logger.js';
 
-/**
- * Perplexity API response interfaces
- */
 interface PerplexityChoice {
-  message: {
-    role: string;
-    content: string;
-  };
+  message: { role: string; content: string; };
   finish_reason: string;
 }
 
@@ -16,27 +10,13 @@ interface PerplexityResponse {
   id: string;
   model: string;
   created: number;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; };
   choices: PerplexityChoice[];
 }
-
-/**
- * AI Service - Integrates Perplexity API for intelligent suggestions
- * 
- * This service enhances baseline analysis with AI-powered insights:
- * - Provides alternative solutions for compatibility issues
- * - Suggests polyfills and workarounds
- * - Recommends best practices
- * - Offers migration strategies
- */
 export class AIService {
   private readonly API_BASE_URL = 'https://api.perplexity.ai/chat/completions';
-  private readonly API_TIMEOUT = 30000; // 30 seconds for AI requests
-  private readonly MODEL = 'sonar'; // Perplexity's web-search enabled model
+  private readonly API_TIMEOUT = 30000;
+  private readonly MODEL = 'sonar';
   
   constructor(private apiKey?: string) {
     if (!apiKey) {
@@ -44,9 +24,6 @@ export class AIService {
     }
   }
 
-  /**
-   * Analyzes features with AI to provide smart suggestions
-   */
   async analyzeFeatures(
     risks: RiskAssessment[],
     prContext: PRContext
@@ -95,9 +72,6 @@ export class AIService {
     return analyses;
   }
 
-  /**
-   * Analyzes a single feature with AI
-   */
   private async analyzeFeature(
     feature: DetectedFeature,
     baseline: BaselineInfo | null,
@@ -115,9 +89,6 @@ export class AIService {
     }
   }
 
-  /**
-   * Builds a comprehensive prompt for AI analysis
-   */
   private buildAnalysisPrompt(
     feature: DetectedFeature,
     baseline: BaselineInfo | null,
@@ -199,9 +170,6 @@ Example valid response:
 `.trim();
   }
 
-  /**
-   * Queries Perplexity API
-   */
   private async queryPerplexity(prompt: string): Promise<string> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
@@ -262,9 +230,6 @@ Example valid response:
     }
   }
 
-  /**
-   * Parses AI response into structured analysis
-   */
   private parseAIResponse(
     response: string,
     feature: DetectedFeature,
@@ -295,9 +260,6 @@ Example valid response:
     }
   }
 
-  /**
-   * Creates a fallback analysis when JSON parsing fails
-   */
   private createFallbackAnalysis(
     response: string,
     feature: DetectedFeature,
@@ -319,9 +281,6 @@ Example valid response:
     };
   }
 
-  /**
-   * Generates a summary of AI analyses for reporting
-   */
   generateAISummary(analyses: AIAnalysis[]): string {
     if (analyses.length === 0) {
       return 'No AI analysis available for this PR.';

@@ -10,22 +10,8 @@ import type {
 } from '../../core/types.js';
 import { logger } from '../../utils/logger.js';
 
-/**
- * Risk Calculator - The Intelligence Layer
- * 
- * This component combines:
- * - Detected features (what we found)
- * - Baseline data (browser compatibility)
- * - PR context (size, target browsers)
- * - Config (thresholds, preferences)
- * 
- * To produce actionable risk assessments that drive decision making
- */
 export class RiskCalculator implements IRiskCalculator {
   
-  /**
-   * Assesses risks for all detected features given context and config
-   */
   async assessRisks(
     features: DetectedFeature[],
     context: PRContext,
@@ -75,10 +61,6 @@ export class RiskCalculator implements IRiskCalculator {
     return assessments;
   }
   
-  /**
-   * Calculates risk level for a single feature
-   * This is the core risk algorithm!
-   */
   calculateRisk(
     feature: DetectedFeature,
     baseline: BaselineInfo | null,
@@ -110,9 +92,6 @@ export class RiskCalculator implements IRiskCalculator {
     return finalRisk;
   }
   
-  /**
-   * Determines what action should be taken based on risk and context
-   */
   private determineAction(
     risk: RiskLevel, 
     prSize: string, 
@@ -155,9 +134,6 @@ export class RiskCalculator implements IRiskCalculator {
     return 'NONE';
   }
   
-  /**
-   * Gets base risk level from baseline compatibility data
-   */
   private getBaseRiskFromBaseline(baseline: BaselineInfo): RiskLevel {
     // High baseline = low risk
     if (baseline.status === 'high') {
@@ -182,9 +158,6 @@ export class RiskCalculator implements IRiskCalculator {
     return 'MEDIUM';
   }
   
-  /**
-   * Adjusts risk based on PR context
-   */
   private adjustRiskForContext(baseRisk: RiskLevel, context: PRContext): RiskLevel {
     // Large PRs: we're more lenient to avoid overwhelming developers
     if (context.size === 'HUGE') {
@@ -204,9 +177,6 @@ export class RiskCalculator implements IRiskCalculator {
     return baseRisk;
   }
   
-  /**
-   * Adjusts risk based on feature characteristics
-   */
   private adjustRiskForFeature(baseRisk: RiskLevel, feature: DetectedFeature): RiskLevel {
     // CSS features are often easier to polyfill
     if (feature.type === 'CSS') {
@@ -229,9 +199,6 @@ export class RiskCalculator implements IRiskCalculator {
     return baseRisk;
   }
   
-  /**
-   * Generates human-readable risk analysis
-   */
   private generateRiskAnalysis(
     feature: DetectedFeature,
     baseline: BaselineInfo | null,

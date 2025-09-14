@@ -2,21 +2,8 @@ import type { IFeatureDetector } from '../../core/interfaces.js';
 import type { CodeChange, DetectedFeature, FeatureType } from '../../core/types.js';
 import { logger } from '../../utils/logger.js';
 
-/**
- * Feature Detector - Finds CSS/JS/HTML features in code changes
- * 
- * This is the core intelligence that identifies web platform features:
- * - CSS properties, selectors, functions
- * - JavaScript APIs, methods, syntax
- * - HTML elements, attributes
- * 
- * Each detected feature will later be checked against baseline data
- */
 export class FeatureDetector implements IFeatureDetector {
   
-  /**
-   * Detects all web platform features from filtered code changes
-   */
   async detectFeatures(changes: CodeChange[]): Promise<DetectedFeature[]> {
     logger.info(`Detecting features from ${changes.length} code changes`);
     
@@ -39,10 +26,6 @@ export class FeatureDetector implements IFeatureDetector {
     return uniqueFeatures;
   }
   
-  /**
-   * Extracts a web platform feature from a single line of code
-   * Returns null if no relevant feature found
-   */
   extractWebFeature(line: string, filePath: string): DetectedFeature | null {
     const trimmedLine = line.trim();
     
@@ -62,9 +45,6 @@ export class FeatureDetector implements IFeatureDetector {
     return null;
   }
   
-  /**
-   * Detects CSS features (properties, selectors, functions)
-   */
   private detectCSSFeature(line: string, filePath: string): DetectedFeature | null {
     // CSS Properties that might have baseline issues
     const cssProperties = [
@@ -163,9 +143,6 @@ export class FeatureDetector implements IFeatureDetector {
     return null;
   }
   
-  /**
-   * Detects JavaScript features (APIs, syntax, methods)
-   */
   private detectJSFeature(line: string, filePath: string): DetectedFeature | null {
     // Web APIs that might have baseline issues
     const webAPIs = [
@@ -260,9 +237,6 @@ export class FeatureDetector implements IFeatureDetector {
     return null;
   }
   
-  /**
-   * Detects HTML features (elements, attributes)
-   */
   private detectHTMLFeature(line: string, filePath: string): DetectedFeature | null {
     // HTML elements that might have baseline issues
     const htmlElements = [
@@ -334,9 +308,6 @@ export class FeatureDetector implements IFeatureDetector {
     return null;
   }
   
-  /**
-   * Remove duplicate features (same feature detected multiple times)
-   */
   private deduplicateFeatures(features: DetectedFeature[]): DetectedFeature[] {
     const seen = new Set<string>();
     const unique: DetectedFeature[] = [];
@@ -352,9 +323,6 @@ export class FeatureDetector implements IFeatureDetector {
     return unique;
   }
   
-  /**
-   * File type detection helpers
-   */
   private isCSSFile(filePath: string): boolean {
     return /\.(css|scss|sass|less)$/i.test(filePath);
   }

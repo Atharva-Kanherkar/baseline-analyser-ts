@@ -2,19 +2,8 @@ import type { IContextEngine } from '../../core/interfaces.js';
 import type { PRContext, PRSize } from '../../core/types.js';
 import { logger } from '../../utils/logger.js';
 
-/**
- * Context Engine - Analyzes PR metadata to determine analysis strategy
- * 
- * This is the brain that decides:
- * - How big is this PR?
- * - What analysis approach should we use?
- * - How aggressive should our filtering be?
- */
 export class ContextEngine implements IContextEngine {
   
-  /**
-   * Analyzes raw PR data from GitHub and extracts structured context
-   */
   async analyzePRContext(prData: unknown): Promise<PRContext> {
     logger.info('Analyzing PR context from GitHub data');
     
@@ -48,10 +37,6 @@ export class ContextEngine implements IContextEngine {
     return context;
   }
   
-  /**
-   * Determines PR size category based on files changed
-   * This drives our entire analysis strategy!
-   */
   determinePRSize(filesChanged: number): PRSize {
     if (filesChanged <= 5) return 'SMALL';
     if (filesChanged <= 20) return 'MEDIUM'; 
@@ -59,10 +44,6 @@ export class ContextEngine implements IContextEngine {
     return 'HUGE';
   }
   
-  /**
-   * Gets the analysis strategy based on PR size
-   * Large PRs need different handling than small ones!
-   */
   getAnalysisStrategy(prSize: PRSize) {
     const strategies: Record<PRSize, {
       reportAllRisks: boolean;
@@ -99,9 +80,6 @@ export class ContextEngine implements IContextEngine {
     return strategies[prSize];
   }
   
-  /**
-   * Type guard for PR data validation
-   */
   private isValidPRData(data: unknown): data is any {
     return (
       typeof data === 'object' &&

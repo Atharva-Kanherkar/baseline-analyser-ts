@@ -1,13 +1,6 @@
 import { logger } from './logger.js';
 
-/**
- * Debug utilities for testing GitHub webhooks and NPM packages
- * Run this with: npm run build && node dist/utils/debug.js
- */
 
-/**
- * Debug helper to log actual GitHub webhook payload structure
- */
 export function debugGitHubPayload(payload: unknown): void {
   logger.info('=== GITHUB WEBHOOK PAYLOAD DEBUG ===');
   
@@ -44,9 +37,6 @@ export function debugGitHubPayload(payload: unknown): void {
   logger.info('=== END GITHUB PAYLOAD DEBUG ===');
 }
 
-/**
- * Debug helper to test NPM package availability and data structure
- */
 export async function debugWebPlatformAPI(): Promise<void> {
   logger.info('=== WEB PLATFORM STATUS API DEBUG ===');
   
@@ -120,9 +110,6 @@ export async function debugWebPlatformAPI(): Promise<void> {
   logger.info('=== END API DEBUG ===');
 }
 
-/**
- * Test our BaselineService with real NPM data
- */
 export async function testBaselineService(): Promise<void> {
   logger.info('=== BASELINE SERVICE TEST ===');
   
@@ -175,9 +162,6 @@ export async function testBaselineService(): Promise<void> {
   logger.info('=== END BASELINE SERVICE TEST ===');
 }
 
-/**
- * Main test runner
- */
 async function runDebugTests(): Promise<void> {
   logger.info('🚀 Starting debug tests...');
   

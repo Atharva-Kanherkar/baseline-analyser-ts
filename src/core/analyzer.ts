@@ -14,17 +14,7 @@ import { FeatureDetector } from '../components/feature-detector/index.js';
 import { RiskCalculator } from '../components/risk-calculator/index.js';
 import { AIService } from '../services/ai.service.js';
 
-/**
- * Main Analyzer - The Orchestrator
- * 
- * This is the heart of the system that:
- * 1. Coordinates all components in the analysis pipeline
- * 2. Implements the large PR handling logic
- * 3. Makes final decisions about PR actions
- * 4. Provides the complete analysis result
- * 
- * The key insight: Large PRs need different treatment than small ones!
- */
+
 export class BaselineAnalyzer {
   private contextEngine: ContextEngine;
   private smartFilter: SmartFilter;
@@ -42,9 +32,6 @@ export class BaselineAnalyzer {
     logger.info('Baseline Analyzer initialized with AI service');
   }
   
-  /**
-   * Main analysis method - the complete pipeline!
-   */
   async analyze(prData: unknown, codeChanges: CodeChange[]): Promise<AnalysisResult> {
     const startTime = Date.now();
     logger.info('Starting baseline analysis pipeline');
@@ -127,14 +114,6 @@ export class BaselineAnalyzer {
     }
   }
   
-  /**
-   * Large PR Logic - The Core Insight!
-   * 
-   * This is what makes our analyzer smart:
-   * - Small PRs: Report everything
-   * - Large PRs: Only report critical issues
-   * - Huge PRs: Only report blocking issues
-   */
   private applyLargePRLogic(
     risks: RiskAssessment[], 
     strategy: { focusOnCritical: boolean; maxReportedIssues: number }
@@ -170,9 +149,6 @@ export class BaselineAnalyzer {
     return result;
   }
   
-  /**
-   * Makes the final decision about what action to take
-   */
   private makeDecision(
     risks: RiskAssessment[], 
     context: PRContext
@@ -234,9 +210,6 @@ export class BaselineAnalyzer {
     };
   }
   
-  /**
-   * Generates a summary of all detected risks
-   */
   private generateSummary(risks: RiskAssessment[]) {
     return {
       critical: risks.filter(r => r.risk === 'CRITICAL').length,
@@ -246,9 +219,6 @@ export class BaselineAnalyzer {
     };
   }
   
-  /**
-   * Utility method for testing - analyze just code changes without PR data
-   */
   async analyzeCodeChanges(codeChanges: CodeChange[]): Promise<AnalysisResult> {
     // Create mock PR data for testing
     const mockPRData = {

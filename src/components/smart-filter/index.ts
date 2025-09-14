@@ -2,15 +2,6 @@ import type { ISmartFilter } from '../../core/interfaces.js';
 import type { CodeChange } from '../../core/types.js';
 import { logger } from '../../utils/logger.js';
 
-/**
- * Smart Filter - Removes 80% of noise from PR changes
- * 
- * This component decides what to analyze and what to skip:
- * - Skip test files, config files, documentation
- * - Focus only on added/modified lines (not deletions)
- * - Filter out comments, whitespace changes
- * - Prioritize actual code changes
- */
 export class SmartFilter implements ISmartFilter {
   
   // File patterns to skip (these rarely contain baseline-affecting features)
@@ -39,9 +30,6 @@ export class SmartFilter implements ISmartFilter {
     /\.(vue|svelte)$/i,
   ];
   
-  /**
-   * Filters a list of code changes to only relevant ones
-   */
   async filterRelevantChanges(changes: CodeChange[]): Promise<CodeChange[]> {
     logger.info(`Filtering ${changes.length} code changes`);
     
@@ -65,9 +53,6 @@ export class SmartFilter implements ISmartFilter {
     return filtered;
   }
   
-  /**
-   * Determines if a file should be skipped entirely
-   */
   shouldSkipFile(filePath: string): boolean {
     // Check skip patterns first (more common)
     const shouldSkip = this.skipPatterns.some(pattern => pattern.test(filePath));
@@ -80,9 +65,6 @@ export class SmartFilter implements ISmartFilter {
     return !isRelevant;
   }
   
-  /**
-   * Determines if a specific code change is relevant for analysis
-   */
   isRelevantChange(change: CodeChange): boolean {
     // Only care about additions and modifications (not deletions)
     if (change.type === 'REMOVED') {
@@ -102,10 +84,6 @@ export class SmartFilter implements ISmartFilter {
     return true;
   }
   
-  /**
-   * Advanced filtering based on PR size and strategy
-   * Large PRs need more aggressive filtering
-   */
   applyContextualFiltering(
     changes: CodeChange[],
     strategy: { filterAggressiveness: string }
@@ -123,16 +101,10 @@ export class SmartFilter implements ISmartFilter {
     return changes.filter(change => !this.isLowImpactChange(change));
   }
   
-  /**
-   * Checks if a line is whitespace-only
-   */
   private isWhitespaceOnly(line: string): boolean {
     return line.trim().length === 0;
   }
   
-  /**
-   * Checks if a line is a comment (basic detection)
-   */
   private isComment(line: string, filePath: string): boolean {
     const trimmed = line.trim();
     
@@ -151,9 +123,6 @@ export class SmartFilter implements ISmartFilter {
     return false;
   }
   
-  /**
-   * Identifies critical files that should always be analyzed
-   */
   private isCriticalFile(filePath: string): boolean {
     const criticalPatterns = [
       /src.*\.(js|ts|jsx|tsx)$/i,
@@ -167,9 +136,6 @@ export class SmartFilter implements ISmartFilter {
     return criticalPatterns.some(pattern => pattern.test(filePath));
   }
   
-  /**
-   * Identifies low-impact changes that can be skipped in large PRs
-   */
   private isLowImpactChange(change: CodeChange): boolean {
     const line = change.line.trim();
     

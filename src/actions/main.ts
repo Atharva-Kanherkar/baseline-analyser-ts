@@ -6,20 +6,7 @@ import type { RiskLevel } from '../core/types.js';
 import { logger } from '../utils/logger.js';
 import { debugGitHubPayload, debugWebPlatformAPI } from '../utils/debug.js';
 
-/**
- * GitHub Actions Integration - The Complete Wrapper
- * 
- * This is the entry point for GitHub Actions that:
- * 1. Handles PR webhooks and events
- * 2. Fetches PR data and diff information
- * 3. Runs the complete analysis pipeline
- * 4. Posts results back to GitHub
- * 5. Sets appropriate exit codes for blocking
- */
 
-/**
- * Maps action.yml blocking-level values to internal enum values
- */
 function mapBlockingLevel(blockingLevel: string): RiskLevel {
   switch (blockingLevel.toLowerCase()) {
     case 'none':
@@ -35,9 +22,6 @@ function mapBlockingLevel(blockingLevel: string): RiskLevel {
   }
 }
 
-/**
- * Main GitHub Actions entry point
- */
 export async function run(): Promise<void> {
   try {
     logger.info('🚀 GitHub Actions Baseline Analyzer starting...');
@@ -85,9 +69,6 @@ export async function run(): Promise<void> {
   }
 }
 
-/**
- * Gets analyzer configuration from GitHub Actions inputs
- */
 function getConfigFromInputs(): AnalyzerConfig {
   const targetBrowsers = core.getInput('target-browsers')
     .split(',')
@@ -115,9 +96,6 @@ function getConfigFromInputs(): AnalyzerConfig {
   return config;
 }
 
-/**
- * Gets PR context from GitHub event data
- */
 function getPRContext(): { prData: any; prNumber: number } {
   const { context } = github;
   
@@ -136,9 +114,6 @@ function getPRContext(): { prData: any; prNumber: number } {
   return { prData, prNumber };
 }
 
-/**
- * Fetches PR changes using GitHub API
- */
 async function fetchPRChanges(githubToken: string, prNumber: number): Promise<CodeChange[]> {
   const { context } = github;
   const octokit = github.getOctokit(githubToken);
@@ -178,9 +153,6 @@ async function fetchPRChanges(githubToken: string, prNumber: number): Promise<Co
   }
 }
 
-/**
- * Extracts line-by-line changes from a Git patch
- */
 async function extractChangesFromPatch(filename: string, patch: string): Promise<CodeChange[]> {
   const changes: CodeChange[] = [];
   
@@ -229,9 +201,6 @@ async function extractChangesFromPatch(filename: string, patch: string): Promise
   return changes;
 }
 
-/**
- * Posts analysis results back to GitHub as a comment
- */
 async function postResultsToGitHub(
   githubToken: string, 
   prNumber: number, 
@@ -260,94 +229,153 @@ async function postResultsToGitHub(
   }
 }
 
-/**
- * Generates a formatted GitHub comment with results
- */
 function generateGitHubComment(result: any): string {
   const { decision, summary, risksFound, aiAnalyses, processingTime } = result;
   
-  let comment = `## 🔍 Baseline Compatibility Analysis\n\n`;
+  let comment = `## 🔍 Web Platform Compatibility Analysis\n\n`;
   
-  // Add decision header
+  // Add decision header with enhanced styling
   const icon = decision.shouldBlock ? '🚨' : summary.high > 0 ? '⚠️' : summary.medium > 0 ? '🔍' : '✅';
+  const statusBadge = decision.shouldBlock ? '![BLOCKED](https://img.shields.io/badge/Status-BLOCKED-red)' :
+                     summary.high > 0 ? '![WARNING](https://img.shields.io/badge/Status-WARNING-orange)' :
+                     summary.medium > 0 ? '![REVIEW](https://img.shields.io/badge/Status-REVIEW-yellow)' :
+                     '![PASSED](https://img.shields.io/badge/Status-PASSED-green)';
+  
+  comment += `${statusBadge}\n\n`;
   comment += `${icon} **${decision.message}**\n\n`;
   
-  // Add summary
+  // Add enhanced summary with better formatting
   if (summary.critical + summary.high + summary.medium + summary.low > 0) {
-    comment += `### Summary\n`;
-    comment += `- 🚨 Critical: ${summary.critical}\n`;
-    comment += `- ⚠️ High: ${summary.high}\n`;
-    comment += `- 🔍 Medium: ${summary.medium}\n`;
-    comment += `- 📝 Low: ${summary.low}\n\n`;
+    comment += `### 📊 Compatibility Summary\n\n`;
+    comment += `| Risk Level | Count | Description |\n`;
+    comment += `|------------|-------|--------------|\n`;
+    
+    if (summary.critical > 0) comment += `| 🚨 **Critical** | ${summary.critical} | Blocking compatibility issues |\n`;
+    if (summary.high > 0) comment += `| ⚠️ **High** | ${summary.high} | Significant compatibility concerns |\n`;
+    if (summary.medium > 0) comment += `| 🔍 **Medium** | ${summary.medium} | Potential compatibility issues |\n`;
+    if (summary.low > 0) comment += `| 📝 **Low** | ${summary.low} | Minor compatibility notes |\n`;
+    
+    comment += `\n`;
   }
   
-  // Add AI suggestions if available
+  // Add AI suggestions if available with enhanced formatting
   if (aiAnalyses && aiAnalyses.length > 0) {
     comment += `### 🤖 AI-Powered Solutions\n\n`;
-    comment += `*Intelligent suggestions based on compatibility analysis*\n\n`;
+    comment += `> 💡 **Intelligent compatibility solutions** powered by Perplexity AI\n\n`;
     
     for (const analysis of aiAnalyses.slice(0, 3)) { // Limit to top 3 AI analyses
-      comment += `#### 💡 Solutions for \`${analysis.feature}\`\n`;
-      comment += `${analysis.reasoning}\n\n`;
+      comment += `<details>\n`;
+      comment += `<summary><strong>💡 Solutions for <code>${analysis.feature}</code></strong> <em>(${Math.round(analysis.confidence * 100)}% confidence)</em></summary>\n\n`;
       
-      for (const suggestion of analysis.suggestions.slice(0, 2)) { // Top 2 suggestions per feature
-        const impactIcon = suggestion.impact === 'high' ? '🔥' : suggestion.impact === 'medium' ? '⚖️' : '🔧';
+      comment += `**🔍 Analysis:** ${analysis.reasoning}\n\n`;
+      
+      for (const [index, suggestion] of analysis.suggestions.slice(0, 3).entries()) { // Top 3 suggestions per feature
+        const impactBadge = suggestion.impact === 'high' ? '![High Impact](https://img.shields.io/badge/Impact-High-red)' :
+                           suggestion.impact === 'medium' ? '![Medium Impact](https://img.shields.io/badge/Impact-Medium-orange)' :
+                           '![Low Impact](https://img.shields.io/badge/Impact-Low-green)';
+        
+        const typeBadge = suggestion.type === 'alternative' ? '![Alternative](https://img.shields.io/badge/Type-Alternative-blue)' :
+                         suggestion.type === 'polyfill' ? '![Polyfill](https://img.shields.io/badge/Type-Polyfill-purple)' :
+                         suggestion.type === 'workaround' ? '![Workaround](https://img.shields.io/badge/Type-Workaround-orange)' :
+                         suggestion.type === 'migration' ? '![Migration](https://img.shields.io/badge/Type-Migration-green)' :
+                         '![Best Practice](https://img.shields.io/badge/Type-Best_Practice-lightblue)';
+        
         const typeIcon = suggestion.type === 'alternative' ? '🔄' : 
                         suggestion.type === 'polyfill' ? '🛠️' : 
                         suggestion.type === 'workaround' ? '🔧' : 
                         suggestion.type === 'migration' ? '⬆️' : '💡';
         
-        comment += `**${typeIcon} ${suggestion.title}** ${impactIcon}\n`;
-        comment += `${suggestion.description}\n`;
+        comment += `#### ${index + 1}. ${typeIcon} ${suggestion.title}\n\n`;
+        comment += `${typeBadge} ${impactBadge}\n\n`;
+        comment += `${suggestion.description}\n\n`;
         
         if (suggestion.code) {
-          comment += `\`\`\`${getLanguageFromFile(analysis.feature)}\n${suggestion.code}\n\`\`\`\n`;
+          const language = inferLanguageFromCode(suggestion.code, analysis.feature);
+          comment += `**Code Example:**\n`;
+          comment += `\`\`\`${language}\n${suggestion.code.trim()}\n\`\`\`\n\n`;
         }
         
         if (suggestion.resources && suggestion.resources.length > 0) {
-          comment += `📚 Resources: ${suggestion.resources.slice(0, 2).map((url: string) => `[link](${url})`).join(', ')}\n`;
+          comment += `**📚 Resources:**\n`;
+          suggestion.resources.slice(0, 3).forEach((url: string, idx: number) => {
+            const linkText = url.includes('developer.mozilla.org') ? 'MDN Docs' :
+                           url.includes('caniuse.com') ? 'Can I Use' :
+                           url.includes('web.dev') ? 'Web.dev' :
+                           `Resource ${idx + 1}`;
+            comment += `- [${linkText}](${url})\n`;
+          });
+          comment += `\n`;
         }
         
-        comment += `\n`;
+        if (index < analysis.suggestions.slice(0, 3).length - 1) {
+          comment += `---\n\n`;
+        }
       }
       
-      comment += `*Confidence: ${Math.round(analysis.confidence * 100)}%*\n\n---\n\n`;
+      comment += `</details>\n\n`;
     }
   }
 
-  // Add detailed findings
+  // Add detailed findings with enhanced formatting
   if (risksFound.length > 0) {
-    comment += `### Detailed Findings\n\n`;
+    comment += `### 🔍 Detailed Compatibility Issues\n\n`;
     
-    for (const risk of risksFound.slice(0, 10)) { // Limit to avoid huge comments
+    for (const risk of risksFound.slice(0, 8)) { // Limit to avoid huge comments
       const riskIcon = risk.risk === 'CRITICAL' ? '🚨' : risk.risk === 'HIGH' ? '⚠️' : risk.risk === 'MEDIUM' ? '🔍' : '📝';
+      const riskBadge = risk.risk === 'CRITICAL' ? '![Critical](https://img.shields.io/badge/Risk-Critical-red)' :
+                       risk.risk === 'HIGH' ? '![High](https://img.shields.io/badge/Risk-High-orange)' :
+                       risk.risk === 'MEDIUM' ? '![Medium](https://img.shields.io/badge/Risk-Medium-yellow)' :
+                       '![Low](https://img.shields.io/badge/Risk-Low-green)';
       
-      comment += `#### ${riskIcon} \`${risk.feature.name}\` in \`${risk.feature.location.file}\`\n`;
-      comment += `**Risk Level:** ${risk.risk}\n`;
-      comment += `**Issue:** ${risk.reason}\n`;
-      comment += `**Recommendation:** ${risk.recommendation}\n`;
+      comment += `<details>\n`;
+      comment += `<summary>${riskIcon} <strong><code>${risk.feature.name}</code></strong> in <code>${risk.feature.location.file}</code></summary>\n\n`;
+      
+      comment += `${riskBadge}\n\n`;
+      comment += `**📝 Issue:** ${risk.reason}\n\n`;
+      comment += `**💡 Recommendation:** ${risk.recommendation}\n\n`;
       
       if (risk.feature.location.snippet) {
-        comment += `**Code:**\n\`\`\`${getLanguageFromFile(risk.feature.location.file)}\n${risk.feature.location.snippet}\n\`\`\`\n`;
+        const language = getLanguageFromFile(risk.feature.location.file);
+        comment += `**📄 Code Location:**\n`;
+        comment += `\`\`\`${language}\n${risk.feature.location.snippet.trim()}\n\`\`\`\n\n`;
       }
       
-      comment += `---\n\n`;
+      // Add browser support info if available
+      if (risk.baseline && risk.baseline.supportedBrowsers) {
+        comment += `**🌐 Browser Support:**\n`;
+        const browsers = risk.baseline.supportedBrowsers;
+        Object.entries(browsers).forEach(([browser, version]) => {
+          const browserIcon = browser.toLowerCase() === 'chrome' ? '🟢' :
+                             browser.toLowerCase() === 'firefox' ? '🟠' :
+                             browser.toLowerCase() === 'safari' ? '🔵' :
+                             browser.toLowerCase() === 'edge' ? '🟢' : '⚪';
+          comment += `- ${browserIcon} ${browser}: ${version || 'Unknown'}\n`;
+        });
+        comment += `\n`;
+      }
+      
+      comment += `</details>\n\n`;
     }
     
-    if (risksFound.length > 10) {
-      comment += `_... and ${risksFound.length - 10} more ${risksFound.length - 10 === 1 ? 'issue' : 'issues'}_\n\n`;
+    if (risksFound.length > 8) {
+      comment += `<details>\n`;
+      comment += `<summary><em>📋 View ${risksFound.length - 8} additional ${risksFound.length - 8 === 1 ? 'issue' : 'issues'}</em></summary>\n\n`;
+      comment += `Additional compatibility concerns found but collapsed for readability.\n`;
+      comment += `</details>\n\n`;
     }
   }
   
-  // Add footer
-  comment += `<sub>⏱️ Analysis completed in ${processingTime}ms | 🤖 Powered by Baseline Analyzer</sub>`;
+  // Add enhanced footer
+  comment += `---\n\n`;
+  comment += `<div align="center">\n\n`;
+  comment += `![Baseline Analyzer](https://img.shields.io/badge/Powered%20by-Baseline%20Analyzer-blue?logo=github)\n`;
+  comment += `![AI Powered](https://img.shields.io/badge/AI-Perplexity-purple?logo=openai)\n\n`;
+  comment += `⏱️ Analysis completed in **${processingTime}ms** | 📊 [Web Platform Status](https://webstatus.dev/) | 🤖 AI-Enhanced\n\n`;
+  comment += `</div>`;
   
   return comment;
 }
 
-/**
- * Gets language identifier for code blocks based on file extension
- */
 function getLanguageFromFile(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase();
   
@@ -367,6 +395,48 @@ function getLanguageFromFile(filename: string): string {
   };
   
   return languageMap[ext || ''] || 'text';
+}
+
+function inferLanguageFromCode(code: string, featureName: string): string {
+  // Smart language detection from code content and feature context
+  const codeContent = code.toLowerCase();
+  
+  // CSS patterns
+  if (/[@:]/.test(code) || /\{[^}]*\}/g.test(code) || featureName.includes('css') || 
+      /\b(display|position|color|background|margin|padding|width|height)\s*:/.test(codeContent)) {
+    return 'css';
+  }
+  
+  // HTML patterns
+  if (/<[^>]+>/g.test(code) || featureName.includes('html') || featureName.includes('dialog')) {
+    return 'html';
+  }
+  
+  // TypeScript patterns
+  if (/\b(interface|type|implements|extends)\b/.test(codeContent) || 
+      /:\s*(string|number|boolean|object)/.test(codeContent) ||
+      /<[A-Z][^>]*>/.test(code)) {
+    return 'typescript';
+  }
+  
+  // JavaScript patterns
+  if (/\b(const|let|var|function|class|async|await|import|export)\b/.test(codeContent) ||
+      /=>\s*\{/.test(code) || /\.(then|catch|map|filter|reduce)/.test(codeContent)) {
+    return 'javascript';
+  }
+  
+  // JSON patterns
+  if (/^\s*\{.*\}\s*$/s.test(code) && !/\bfunction\b/.test(codeContent)) {
+    return 'json';
+  }
+  
+  // Bash/shell patterns
+  if (/^\s*(npm|yarn|git|cd|ls|mkdir)/.test(codeContent)) {
+    return 'bash';
+  }
+  
+  // Default fallback
+  return 'text';
 }
 
 // Auto-run if this is the main module

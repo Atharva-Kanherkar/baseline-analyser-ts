@@ -2,9 +2,6 @@ import type { IBaselineService } from '../core/interfaces.js';
 import type { BaselineInfo, BaselineStatus } from '../core/types.js';
 import { logger } from '../utils/logger.js';
 
-/**
- * Web Platform Status API response interfaces
- */
 interface WebPlatformAPIResponse {
   data: WebPlatformFeature[];
 }
@@ -26,15 +23,6 @@ interface WebPlatformFeature {
   };
 }
 
-/**
- * Baseline Service - Uses Web Platform Status API for baseline data
- * 
- * This service provides browser compatibility data for detected web features:
- * - Uses Web Platform Status API (https://api.webstatus.dev/v1/features)
- * - Provides fallback compatibility data when API is unavailable
- * - Maps features to baseline status (high/limited/low)
- * - Determines browser support timelines
- */
 export class BaselineService implements IBaselineService {
   
   // Cache for baseline data to avoid repeated lookups
@@ -44,9 +32,6 @@ export class BaselineService implements IBaselineService {
   private readonly API_BASE_URL = 'https://api.webstatus.dev/v1/features';
   private readonly API_TIMEOUT = 10000; // 10 seconds timeout
   
-  /**
-   * Fetches data from the Web Platform Status API
-   */
   private async getFromBaselineAPI(featureName: string): Promise<BaselineInfo | null> {
     try {
       const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
@@ -144,9 +129,6 @@ export class BaselineService implements IBaselineService {
     }
   }
 
-  /**
-   * Converts API response to BaselineInfo format
-   */
   private convertAPIResponseToBaselineInfo(apiFeature: WebPlatformFeature): BaselineInfo {
     const baseline = apiFeature.baseline;
     if (!baseline) {
@@ -187,9 +169,6 @@ export class BaselineService implements IBaselineService {
     };
   }
 
-  /**
-   * Gets baseline compatibility info for a web platform feature
-   */
   async getBaselineInfo(featureName: string): Promise<BaselineInfo | null> {
     // Check cache first
     if (this.baselineCache.has(featureName)) {
@@ -212,9 +191,6 @@ export class BaselineService implements IBaselineService {
     return baselineData;
   }
   
-  /**
-   * Checks if a feature is supported in the target browsers
-   */
   async isFeatureSupported(feature: string, browsers: string[]): Promise<boolean> {
     const baselineInfo = await this.getBaselineInfo(feature);
     
@@ -235,9 +211,6 @@ export class BaselineService implements IBaselineService {
   
 
   
-  /**
-   * Maps our detected feature names to Web Platform Status API feature IDs
-   */
   private mapFeatureNameToWebFeatureId(featureName: string): string[] {
     const mappings: Record<string, string[]> = {
       // CSS Features
@@ -301,10 +274,6 @@ export class BaselineService implements IBaselineService {
   
 
   
-  /**
-   * Provides fallback baseline data for common web features
-   * This ensures the analyzer works even without NPM packages
-   */
   private getFallbackBaselineData(featureName: string): BaselineInfo | null {
     logger.debug(`[FALLBACK] Using built-in compatibility data for '${featureName}'`);
     const fallbackData: Record<string, BaselineInfo> = {
@@ -699,9 +668,6 @@ export class BaselineService implements IBaselineService {
     };
   }
   
-  /**
-   * Checks if a feature is supported in a specific browser
-   */
   private isSupportedInBrowser(baselineInfo: BaselineInfo, targetBrowser: string): boolean {
     // Parse target browser (e.g., "chrome >= 90", "ie >= 11")
     const [browser, version] = this.parseBrowserTarget(targetBrowser);
@@ -720,9 +686,6 @@ export class BaselineService implements IBaselineService {
     return this.compareVersions(supportData.version, version) <= 0;
   }
   
-  /**
-   * Parses browser target strings like "chrome >= 90" or "ie 11"
-   */
   private parseBrowserTarget(target: string): [string, string] {
     const match = target.match(/(\w+)\s*(?:>=|>)?\s*(\d+(?:\.\d+)?)/);
     if (match && match[1] && match[2]) {
@@ -733,9 +696,6 @@ export class BaselineService implements IBaselineService {
     return [target, '0'];
   }
   
-  /**
-   * Simple version comparison (assumes semver-like: major.minor.patch)
-   */
   private compareVersions(version1: string, version2: string): number {
     const v1parts = version1.split('.').map(Number);
     const v2parts = version2.split('.').map(Number);
