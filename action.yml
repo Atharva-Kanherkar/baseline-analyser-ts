@@ -28,9 +28,14 @@ inputs:
     default: '20'
   
   huge-pr-threshold:
-    description: 'Number of files that constitute a huge PR'
+    description: 'The number of files changed to consider a PR "huge".'
     required: false
-    default: '50'
+    default: 50
+  
+  risk-level-filter:
+    description: 'Filter results by risk level. Options: `low`, `medium`, `high`, `critical`.'
+    required: false
+    default: 'medium'
   
   enable-ai-review:
     description: 'Enable AI-powered review suggestions with Perplexity'

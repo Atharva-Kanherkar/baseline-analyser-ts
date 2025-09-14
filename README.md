@@ -70,7 +70,8 @@ jobs:
 | `github-token` | GitHub token for API access | `${{ github.token }}` | ✅ |
 | `blocking-level` | Action behavior: `none`, `warning`, `error`, `critical` | `warning` | ❌ |
 | `target-browsers` | Comma-separated browser targets | `chrome >= 90, firefox >= 88, safari >= 14, edge >= 90` | ❌ |
-| `large-pr-threshold` | Files count for large PR classification | `20` | ❌ |
+| `risk-level-filter` | `string` | `'medium'` | Filter results by risk level. Options: `low`, `medium`, `high`, `critical`. |
+| `large-pr-threshold` | `number` | `20` | The number of files changed to consider a PR "large". |
 | `huge-pr-threshold` | Files count for huge PR classification | `50` | ❌ |
 | `enable-ai-review` | Enable AI-powered suggestions with Perplexity | `false` | ❌ |
 | `perplexity-api-key` | Perplexity API key for AI suggestions | `${{ secrets.PERPLEXITY_API_KEY }}` | ❌ |
