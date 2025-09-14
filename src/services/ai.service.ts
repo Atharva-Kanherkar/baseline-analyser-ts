@@ -58,12 +58,24 @@ export class AIService {
 
     const analyses: AIAnalysis[] = [];
     
-    // Focus on high and critical risk features first
-    const prioritizedRisks = risks
-      .filter(risk => ['HIGH', 'CRITICAL'].includes(risk.risk))
-      .slice(0, 5); // Limit to 5 most critical issues
+    // Focus on features that would benefit from AI analysis:
+    // - HIGH/CRITICAL risks (definitely need alternatives)
+    // - MEDIUM risks with limited/newly baseline status (newer features that might need polyfills)
+    const candidateFeatures = risks
+      .filter(risk => {
+        if (['HIGH', 'CRITICAL'].includes(risk.risk)) {
+          return true; // Always include high/critical risks
+        }
+        // Include medium risk features that are newly/limited supported
+        if (risk.risk === 'MEDIUM' && risk.baseline && 
+            ['limited', 'newly'].includes(risk.baseline.status)) {
+          return true;
+        }
+        return false;
+      })
+      .slice(0, 5); // Limit to 5 most relevant issues
 
-    for (const risk of prioritizedRisks) {
+    for (const risk of candidateFeatures) {
       try {
         const feature = risk.feature;
         const baseline = risk.baseline;
@@ -302,7 +314,7 @@ Format your response as JSON with this structure:
       }, {} as Record<string, number>);
 
     let summary = `🤖 **AI Analysis Summary**\n\n`;
-    summary += `- Analyzed ${analyses.length} high-risk features\n`;
+    summary += `- Analyzed ${analyses.length} features requiring attention\n`;
     summary += `- Generated ${totalSuggestions} actionable suggestions\n`;
     summary += `- Average confidence: ${(avgConfidence * 100).toFixed(1)}%\n\n`;
     
