@@ -3,7 +3,7 @@ export class AIService {
     apiKey;
     API_BASE_URL = 'https://api.perplexity.ai/chat/completions';
     API_TIMEOUT = 30000;
-    MODEL = 'sonar';
+    MODEL = 'llama-3.1-sonar-small-128k-online';
     constructor(apiKey) {
         this.apiKey = apiKey;
         if (!apiKey) {
@@ -16,26 +16,18 @@ export class AIService {
             return [];
         }
         const analyses = [];
-        logger.info(`AI Service: Evaluating ${risks.length} risk assessments for AI analysis`);
-        for (const risk of risks) {
-            logger.info(`  - ${risk.feature.name}: risk=${risk.risk}, baseline_status=${risk.baseline?.status || 'null'}`);
-        }
         const candidateFeatures = risks
             .filter(risk => {
             if (['HIGH', 'CRITICAL'].includes(risk.risk)) {
-                logger.info(`  ✅ Including ${risk.feature.name} (HIGH/CRITICAL risk)`);
                 return true;
             }
             if (risk.risk === 'MEDIUM' && risk.baseline &&
                 ['limited', 'newly'].includes(risk.baseline.status)) {
-                logger.info(`  ✅ Including ${risk.feature.name} (MEDIUM risk with ${risk.baseline.status} baseline)`);
                 return true;
             }
-            logger.info(`  ❌ Skipping ${risk.feature.name} (risk=${risk.risk}, baseline=${risk.baseline?.status || 'null'})`);
             return false;
         })
             .slice(0, 5);
-        logger.info(`AI Service: Selected ${candidateFeatures.length} features for analysis`);
         for (const risk of candidateFeatures) {
             try {
                 const feature = risk.feature;
@@ -103,7 +95,9 @@ Please provide:
 Focus on practical, immediately actionable advice that a developer can implement.
 Prioritize solutions that maintain functionality while ensuring broad browser support.
 
-Format your response as JSON with this structure:
+CRITICAL: Your response MUST be valid JSON only. Do not include any text before or after the JSON. Start with { and end with }.
+
+Format your response as this exact JSON structure:
 {
   "reasoning": "Brief explanation of the compatibility issue",
   "confidence": 0.8,
@@ -115,6 +109,22 @@ Format your response as JSON with this structure:
       "code": "Code example if applicable",
       "resources": ["URL1", "URL2"],
       "impact": "low|medium|high"
+    }
+  ]
+}
+
+Example valid response:
+{
+  "reasoning": "The loading='lazy' attribute enables native lazy loading but has limited browser support.",
+  "confidence": 0.85,
+  "suggestions": [
+    {
+      "type": "polyfill",
+      "title": "Use Intersection Observer Polyfill",
+      "description": "Implement lazy loading with Intersection Observer for broader browser support",
+      "code": "const observer = new IntersectionObserver((entries) => { /* lazy load logic */ });",
+      "resources": ["https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API"],
+      "impact": "medium"
     }
   ]
 }
@@ -135,7 +145,7 @@ Format your response as JSON with this structure:
                     messages: [
                         {
                             role: 'system',
-                            content: 'You are a web development expert specializing in browser compatibility and modern web standards. Provide practical, actionable advice with working code examples.'
+                            content: 'You are a web development expert specializing in browser compatibility and modern web standards. You MUST respond with valid JSON only - no other text, explanations, or formatting. Your entire response should be parseable JSON starting with { and ending with }.'
                         },
                         {
                             role: 'user',
