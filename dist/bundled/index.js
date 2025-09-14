@@ -29925,24 +29925,10 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:events"
 
 /***/ }),
 
-/***/ 3024:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
-
-/***/ }),
-
 /***/ 7075:
 /***/ ((module) => {
 
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:stream");
-
-/***/ }),
-
-/***/ 3136:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:url");
 
 /***/ }),
 
@@ -32708,93 +32694,70 @@ function debugGitHubPayload(payload) {
     }
     logger/* logger */.v.info('=== END GITHUB PAYLOAD DEBUG ===');
 }
-async function debugNpmPackages() {
-    logger/* logger */.v.info('=== NPM PACKAGES DEBUG ===');
+async function debugWebPlatformAPI() {
+    logger/* logger */.v.info('=== WEB PLATFORM STATUS API DEBUG ===');
+    const API_BASE_URL = 'https://api.webstatus.dev/v1/features';
     try {
-        const webFeaturesModule = await __nccwpck_require__.e(/* import() */ 197).then(__nccwpck_require__.bind(__nccwpck_require__, 3197));
-        const webFeatures = webFeaturesModule?.default?.default ||
-            webFeaturesModule?.default ||
-            webFeaturesModule;
-        const features = webFeatures?.features ||
-            webFeatures?.default?.features ||
-            (webFeatures.default && webFeatures.default.features);
-        const groups = webFeatures?.groups ||
-            webFeatures?.default?.groups ||
-            (webFeatures.default && webFeatures.default.groups);
-        const browsers = webFeatures?.browsers ||
-            webFeatures?.default?.browsers ||
-            (webFeatures.default && webFeatures.default.browsers);
-        if (features && typeof features === 'object' && Object.keys(features).length > 0) {
-            if (features && groups && browsers) {
-                logger/* logger */.v.info('✅ web-features package available');
-                logger/* logger */.v.info(`📊 Features count: ${Object.keys(features).length}`);
-                logger/* logger */.v.info(`📊 Groups count: ${Object.keys(groups).length}`);
-                logger/* logger */.v.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
-                const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
-                logger/* logger */.v.info('🔍 Testing specific features:');
-                for (const featureId of testFeatures) {
-                    const feature = features[featureId];
-                    if (feature) {
-                        logger/* logger */.v.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
-                        logger/* logger */.v.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
+        logger/* logger */.v.info('🔍 Testing API connectivity...');
+        const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
+        for (const featureId of testFeatures) {
+            try {
+                const query = encodeURIComponent(`id:${featureId}`);
+                const url = `${API_BASE_URL}?q=${query}`;
+                const startTime = Date.now();
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'baseline-analyzer-ts/1.0.0'
                     }
-                    else {
-                        logger/* logger */.v.info(`  ❌ ${featureId}: Not found`);
-                    }
-                }
-                logger/* logger */.v.info('🔍 Available groups:');
-                Object.entries(groups).slice(0, 5).forEach(([id, group]) => {
-                    logger/* logger */.v.info(`  📁 ${id}: ${group.name}`);
                 });
-            }
-            else {
-                logger/* logger */.v.warn('❌ web-features: Invalid module structure');
-            }
-        }
-        else {
-            logger/* logger */.v.warn('❌ web-features: Invalid module export');
-        }
-    }
-    catch (error) {
-        logger/* logger */.v.warn('❌ web-features package error:', error.message);
-    }
-    try {
-        const computeBaseline = await __nccwpck_require__.e(/* import() */ 173).then(__nccwpck_require__.bind(__nccwpck_require__, 7173));
-        logger/* logger */.v.info('✅ compute-baseline package available');
-        const getStatus = computeBaseline.getStatus;
-        if (getStatus) {
-            logger/* logger */.v.info('✅ getStatus function available');
-            const testBCDKeys = [
-                'css.properties.display.grid',
-                'css.selectors.has',
-                'api.fetch',
-                'html.elements.dialog'
-            ];
-            logger/* logger */.v.info('🔍 Testing specific BCD keys:');
-            for (const bcdKey of testBCDKeys) {
-                try {
-                    const status = getStatus(null, bcdKey);
-                    if (status) {
-                        logger/* logger */.v.info(`  ✅ ${bcdKey}: baseline: ${status.baseline}`);
-                        logger/* logger */.v.info(`     Support: ${JSON.stringify(status.support || {})}`);
+                const duration = Date.now() - startTime;
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.data && result.data.length > 0) {
+                        const feature = result.data[0];
+                        logger/* logger */.v.info(`  ✅ ${featureId}: ${feature.name} (${duration}ms)`);
+                        if (feature.baseline) {
+                            logger/* logger */.v.info(`     Baseline: ${feature.baseline.status}`);
+                            logger/* logger */.v.info(`     High date: ${feature.baseline.high_date || 'N/A'}`);
+                            logger/* logger */.v.info(`     Low date: ${feature.baseline.low_date || 'N/A'}`);
+                        }
                     }
                     else {
-                        logger/* logger */.v.info(`  ❌ ${bcdKey}: No data returned`);
+                        logger/* logger */.v.info(`  ❓ ${featureId}: No data found (${duration}ms)`);
                     }
                 }
-                catch (error) {
-                    logger/* logger */.v.info(`  ❌ ${bcdKey}: Error - ${error.message}`);
+                else {
+                    logger/* logger */.v.warn(`  ❌ ${featureId}: HTTP ${response.status} (${duration}ms)`);
+                }
+            }
+            catch (error) {
+                logger/* logger */.v.warn(`  💥 ${featureId}: ${error.message}`);
+            }
+        }
+        logger/* logger */.v.info('🔍 Testing search functionality...');
+        try {
+            const searchQuery = encodeURIComponent('CSS Grid');
+            const url = `${API_BASE_URL}?q=${searchQuery}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const result = await response.json();
+                logger/* logger */.v.info(`✅ Search returned ${result.data?.length || 0} results`);
+                if (result.data && result.data.length > 0) {
+                    result.data.slice(0, 3).forEach((feature, index) => {
+                        logger/* logger */.v.info(`  ${index + 1}. ${feature.name} (${feature.feature_id})`);
+                    });
                 }
             }
         }
-        else {
-            logger/* logger */.v.warn('❌ getStatus function not found in compute-baseline');
+        catch (error) {
+            logger/* logger */.v.warn(`Search test failed: ${error.message}`);
         }
     }
     catch (error) {
-        logger/* logger */.v.warn('❌ compute-baseline package error:', error.message);
+        logger/* logger */.v.warn('❌ Web Platform Status API error:', error.message);
     }
-    logger/* logger */.v.info('=== END NPM DEBUG ===');
+    logger/* logger */.v.info('=== END API DEBUG ===');
 }
 async function testBaselineService() {
     logger/* logger */.v.info('=== BASELINE SERVICE TEST ===');
@@ -32841,7 +32804,7 @@ async function testBaselineService() {
 }
 async function runDebugTests() {
     logger/* logger */.v.info('🚀 Starting debug tests...');
-    await debugNpmPackages();
+    await debugWebPlatformAPI();
     await testBaselineService();
     logger/* logger */.v.info('✅ Debug tests complete!');
 }
@@ -32861,8 +32824,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 async function run() {
     try {
         logger/* logger */.v.info('🚀 GitHub Actions Baseline Analyzer starting...');
-        if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PACKAGES === 'true') {
-            await debugNpmPackages();
+        if (process.env.NODE_ENV === 'development' || process.env.DEBUG_API === 'true') {
+            await debugWebPlatformAPI();
         }
         const config = getConfigFromInputs();
         const { prData, prNumber } = getPRContext();
