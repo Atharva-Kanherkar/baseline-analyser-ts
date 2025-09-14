@@ -36,7 +36,7 @@ interface PerplexityResponse {
 export class AIService {
   private readonly API_BASE_URL = 'https://api.perplexity.ai/chat/completions';
   private readonly API_TIMEOUT = 30000; // 30 seconds for AI requests
-  private readonly MODEL = 'llama-3.1-sonar-small-128k-online'; // Perplexity's web-search enabled model
+  private readonly MODEL = 'sonar'; // Perplexity's web-search enabled model
   
   constructor(private apiKey?: string) {
     if (!apiKey) {
@@ -206,6 +206,25 @@ Example valid response:
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
 
+    const requestPayload = {
+      model: this.MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a web development expert specializing in browser compatibility and modern web standards. You MUST respond with valid JSON only - no other text, explanations, or formatting. Your entire response should be parseable JSON starting with { and ending with }.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 2000,
+      temperature: 0.1,
+      top_p: 0.9,
+    };
+
+    logger.info(`Perplexity API Request - Model: ${this.MODEL}, Prompt length: ${prompt.length}`);
+
     try {
       const response = await fetch(this.API_BASE_URL, {
         method: 'POST',
@@ -213,29 +232,16 @@ Example valid response:
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: this.MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a web development expert specializing in browser compatibility and modern web standards. You MUST respond with valid JSON only - no other text, explanations, or formatting. Your entire response should be parseable JSON starting with { and ending with }.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 2000,
-          temperature: 0.1, // Lower temperature for more consistent, factual responses
-          top_p: 0.9,
-        }),
+        body: JSON.stringify(requestPayload),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Perplexity API error: ${response.status} ${response.statusText}`);
+        const errorBody = await response.text();
+        logger.error(`Perplexity API Error Response: ${errorBody}`);
+        throw new Error(`Perplexity API error: ${response.status} ${response.statusText} - ${errorBody}`);
       }
 
       const data = await response.json() as PerplexityResponse;
