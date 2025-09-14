@@ -32745,7 +32745,7 @@ class BaselineAnalyzer {
         this.smartFilter = new SmartFilter();
         this.featureDetector = new FeatureDetector();
         this.riskCalculator = new RiskCalculator();
-        this.aiService = new AIService(config.perplexityApiKey || process.env.PERPLEXITY_API_KEY);
+        this.aiService = new AIService(this.config.perplexityApiKey);
         logger/* logger */.v.info('Baseline Analyzer initialized with AI service');
     }
     async analyze(prData, codeChanges) {
