@@ -2,12 +2,12 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { BaselineAnalyzer } from '../core/analyzer.js';
 import { logger } from '../utils/logger.js';
-import { debugGitHubPayload, debugNpmPackages } from '../utils/debug.js';
+import { debugGitHubPayload, debugWebPlatformAPI } from '../utils/debug.js';
 export async function run() {
     try {
         logger.info('🚀 GitHub Actions Baseline Analyzer starting...');
-        if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PACKAGES === 'true') {
-            await debugNpmPackages();
+        if (process.env.NODE_ENV === 'development' || process.env.DEBUG_API === 'true') {
+            await debugWebPlatformAPI();
         }
         const config = getConfigFromInputs();
         const { prData, prNumber } = getPRContext();

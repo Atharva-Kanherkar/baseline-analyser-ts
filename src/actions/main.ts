@@ -3,7 +3,7 @@ import * as github from '@actions/github';
 import { BaselineAnalyzer } from '../core/analyzer.js';
 import { AnalyzerConfig, CodeChange } from '../core/types.js';
 import { logger } from '../utils/logger.js';
-import { debugGitHubPayload, debugNpmPackages } from '../utils/debug.js';
+import { debugGitHubPayload, debugWebPlatformAPI } from '../utils/debug.js';
 
 /**
  * GitHub Actions Integration - The Complete Wrapper
@@ -23,9 +23,9 @@ export async function run(): Promise<void> {
   try {
     logger.info('🚀 GitHub Actions Baseline Analyzer starting...');
     
-    // DEBUG: Test NPM packages in development
-    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_PACKAGES === 'true') {
-      await debugNpmPackages();
+    // DEBUG: Test Web Platform API in development
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG_API === 'true') {
+      await debugWebPlatformAPI();
     }
     
     // Get configuration from GitHub Actions inputs

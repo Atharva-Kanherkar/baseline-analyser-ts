@@ -3,11 +3,35 @@ import type { BaselineInfo, BaselineStatus } from '../core/types.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Baseline Service - Integrates with NPM baseline packages
+ * Web Platform Status API response interfaces
+ */
+interface WebPlatformAPIResponse {
+  data: WebPlatformFeature[];
+}
+
+interface WebPlatformFeature {
+  feature_id: string;
+  name: string;
+  baseline?: {
+    status: 'widely' | 'newly' | 'limited' | string;
+    low_date?: string;
+    high_date?: string;
+  };
+  browser_implementations?: Record<string, {
+    version?: string;
+    status?: string;
+  }>;
+  spec?: {
+    links?: Array<{ url: string; title: string }>;
+  };
+}
+
+/**
+ * Baseline Service - Uses Web Platform Status API for baseline data
  * 
  * This service provides browser compatibility data for detected web features:
- * - Uses @web-platform-dx/web-features (when available)
- * - Provides fallback compatibility data
+ * - Uses Web Platform Status API (https://api.webstatus.dev/v1/features)
+ * - Provides fallback compatibility data when API is unavailable
  * - Maps features to baseline status (high/limited/low)
  * - Determines browser support timelines
  */
@@ -16,56 +40,151 @@ export class BaselineService implements IBaselineService {
   // Cache for baseline data to avoid repeated lookups
   private baselineCache = new Map<string, BaselineInfo | null>();
   
-  // Web-features data cache
-  private webFeaturesData: { features?: any; browsers?: any } | null = null;
-  private webFeaturesInitialized = false;
+  // Web Platform Status API configuration
+  private readonly API_BASE_URL = 'https://api.webstatus.dev/v1/features';
+  private readonly API_TIMEOUT = 10000; // 10 seconds timeout
   
   /**
-   * Initialize web-features package with proper error handling
+   * Fetches data from the Web Platform Status API
    */
-  private async initializeWebFeatures(): Promise<void> {
-    if (this.webFeaturesInitialized) {
-      return;
-    }
-    
+  private async getFromBaselineAPI(featureName: string): Promise<BaselineInfo | null> {
     try {
-      // Import with comprehensive fallback handling for all bundling scenarios
-      const webFeaturesModule = await import('web-features');
+      const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
       
-      // Handle ALL possible bundling scenarios
-      const webFeatures = 
-        (webFeaturesModule as any)?.default?.default ||  // Double-wrapped default
-        (webFeaturesModule as any)?.default ||           // Single default wrapper
-        webFeaturesModule;                               // Direct named exports
-
-      // Extract data with multiple fallback patterns
-      const features = 
-        webFeatures?.features ||                         // Direct access
-        (webFeatures as any)?.default?.features ||       // Default wrapped
-        ((webFeatures as any).default && (webFeatures as any).default.features); // Nested default
-        
-      const browsers = 
-        webFeatures?.browsers ||
-        (webFeatures as any)?.default?.browsers ||
-        ((webFeatures as any).default && (webFeatures as any).default.browsers);
-
-      if (!features || typeof features !== 'object' || Object.keys(features).length === 0) {
-        logger.warn('web-features package loaded but no valid features data found');
-        this.webFeaturesData = null;
-        return;
+      for (const featureId of possibleIds) {
+        try {
+          const query = encodeURIComponent(`id:${featureId}`);
+          const url = `${this.API_BASE_URL}?q=${query}`;
+          
+          // Create AbortController for timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
+          
+          const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'baseline-analyzer-ts/1.0.0'
+            }
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            logger.debug(`API request failed for ${featureId}: ${response.status} ${response.statusText}`);
+            continue;
+          }
+          
+          const result = await response.json() as WebPlatformAPIResponse;
+          
+          if (result.data && result.data.length > 0) {
+            const feature = result.data[0];
+            
+            if (feature && feature.baseline) {
+              logger.info(`[DATA SOURCE] Using REAL API data for '${featureName}' from Web Platform Status API`);
+              return this.convertAPIResponseToBaselineInfo(feature);
+            }
+            
+            logger.debug(`Feature ${featureId} found but has no baseline data`);
+          } else {
+            logger.debug(`No data found for feature ${featureId}`);
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            logger.debug(`API request timeout for ${featureId}`);
+          } else {
+            logger.debug(`Error fetching ${featureId} from API: ${error instanceof Error ? error.message : String(error)}`);
+          }
+          continue;
+        }
       }
-
-      // Store the successfully extracted data
-      this.webFeaturesData = { features, browsers };
       
-      logger.debug(`✅ web-features package loaded successfully with ${Object.keys(features).length} features`);
+      // Try alternative search by feature name if ID search failed
+      try {
+        const nameQuery = encodeURIComponent(featureName);
+        const url = `${this.API_BASE_URL}?q=${nameQuery}`;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
+        
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'baseline-analyzer-ts/1.0.0'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const result = await response.json() as WebPlatformAPIResponse;
+          
+          if (result.data && result.data.length > 0) {
+            // Find the best match by name similarity
+            const bestMatch = result.data.find((feature: WebPlatformFeature) => 
+              feature.name && feature.name.toLowerCase().includes(featureName.toLowerCase())
+            );
+            
+            if (bestMatch && bestMatch.baseline) {
+              logger.info(`[DATA SOURCE] Using REAL API data for '${featureName}' from Web Platform Status API (name search)`);
+              return this.convertAPIResponseToBaselineInfo(bestMatch);
+            }
+          }
+        }
+      } catch (error) {
+        logger.debug(`Error in fallback name search for ${featureName}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      return null;
+      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.warn(`web-features package not available: ${errorMessage}`);
-      this.webFeaturesData = null;
+      logger.debug(`Error accessing Web Platform Status API: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * Converts API response to BaselineInfo format
+   */
+  private convertAPIResponseToBaselineInfo(apiFeature: WebPlatformFeature): BaselineInfo {
+    const baseline = apiFeature.baseline;
+    if (!baseline) {
+      throw new Error('Feature has no baseline data');
     }
     
-    this.webFeaturesInitialized = true;
+    const status = baseline.status;
+    
+    let baselineStatus: BaselineStatus;
+    if (status === 'widely') {
+      baselineStatus = 'high';
+    } else if (status === 'newly') {
+      baselineStatus = 'limited';
+    } else {
+      baselineStatus = 'low';
+    }
+    
+    // Extract browser support data if available in the API response
+    const supportedBrowsers = [];
+    if (apiFeature.browser_implementations) {
+      for (const [browser, data] of Object.entries(apiFeature.browser_implementations)) {
+        if (data && data.version) {
+          supportedBrowsers.push({
+            browser: browser.toLowerCase(),
+            version: data.version,
+          });
+        }
+      }
+    }
+    
+    return {
+      status: baselineStatus,
+      isBaseline2023: Boolean(baseline.high_date && 
+                             new Date(baseline.high_date).getFullYear() <= 2023),
+      isWidelySupported: status === 'widely',
+      supportedBrowsers,
+      dateSupported: baseline.high_date || baseline.low_date || null,
+    };
   }
 
   /**
@@ -79,8 +198,8 @@ export class BaselineService implements IBaselineService {
     
     logger.debug(`Looking up baseline info for: ${featureName}`);
     
-    // Try to get data from NPM packages (when available)
-    let baselineData = await this.getFromWebFeaturesPackage(featureName);
+    // Try to get data from Web Platform Status API
+    let baselineData = await this.getFromBaselineAPI(featureName);
     
     // Fallback to hardcoded compatibility data
     if (!baselineData) {
@@ -114,240 +233,73 @@ export class BaselineService implements IBaselineService {
     return true;
   }
   
-  /**
-   * Gets data from the official web-features package
-   */
-  private async getFromWebFeaturesPackage(featureName: string): Promise<BaselineInfo | null> {
-    try {
-      // Initialize web-features with proper error handling
-      await this.initializeWebFeatures();
-      
-      if (!this.webFeaturesData || !this.webFeaturesData.features) {
-        logger.debug('No web-features data available');
-        return null;
-      }
 
-      const features = this.webFeaturesData.features;
-      
-      // Map our detected feature names to web-features IDs
-      const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
-      
-      for (const featureId of possibleIds) {
-        const feature = features[featureId];
-        if (feature && feature.status) {
-          logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from web-features`);
-          logger.debug(`Found web-features data for: ${featureName} (id: ${featureId})`);
-          return this.convertWebFeatureToBaselineInfo(feature);
-        }
-      }
-      
-      // Try to find by BCD key using compute-baseline
-      const bcdKey = this.mapFeatureNameToBCDKey(featureName);
-      if (bcdKey) {
-        try {
-          const computeBaseline = await import('compute-baseline');
-          const getStatus = (computeBaseline as any).getStatus || (computeBaseline as any).default?.getStatus;
-          
-          if (getStatus) {
-            const status = getStatus(null, bcdKey);
-            
-            if (status) {
-              logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from compute-baseline`);
-              logger.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
-              return this.convertComputeBaselineToBaselineInfo(status);
-            }
-          } else {
-            logger.debug(`getStatus function not found in compute-baseline package`);
-          }
-        } catch (error) {
-          logger.debug(`Error using compute-baseline for ${bcdKey}: ${error}`);
-        }
-      }
-      
-      logger.debug(`No web-features data found for: ${featureName}`);
-      return null;
-      
-    } catch (error) {
-      logger.debug(`Error accessing web-features package: ${error}`);
-      // Don't log as warning since fallback data works fine
-      return null;
-    }
-  }
   
   /**
-   * Maps our detected feature names to official web-features package IDs
+   * Maps our detected feature names to Web Platform Status API feature IDs
    */
   private mapFeatureNameToWebFeatureId(featureName: string): string[] {
     const mappings: Record<string, string[]> = {
       // CSS Features
-      'display: grid': ['grid'],
-      'display: flex': ['flexbox'],
-      ':has': ['has'],
-      '@container': ['container-queries'],
-      'container-type': ['container-queries'],
-      'clamp': ['css-math-functions'],
-      'min': ['css-math-functions'],
-      'max': ['css-math-functions'],
-      'aspect-ratio': ['aspect-ratio'],
-      'gap': ['gap'],
-      'scroll-behavior': ['scroll-behavior'],
-      'position: sticky': ['sticky'],
-      'backdrop-filter': ['backdrop-filter'],
+      'display: grid': ['grid', 'css-grid', 'grid-layout'],
+      'grid-template': ['grid', 'css-grid'],
+      'grid-template-columns': ['grid', 'css-grid'],
+      'display: flex': ['flexbox', 'css-flexbox', 'flexible-box'],
+      ':has': ['has', 'css-has', 'has-selector'],
+      '@container': ['container-queries', 'css-container-queries', 'cq'],
+      'container-type': ['container-queries', 'css-container-queries'],
+      'container-name': ['container-queries', 'css-container-queries'],
+      'clamp': ['css-math-functions', 'clamp', 'css-clamp'],
+      'min': ['css-math-functions', 'css-min'],
+      'max': ['css-math-functions', 'css-max'],
+      'aspect-ratio': ['aspect-ratio', 'css-aspect-ratio'],
+      'gap': ['gap', 'css-gap', 'grid-gap'],
+      'scroll-behavior': ['scroll-behavior', 'css-scroll-behavior'],
+      'position: sticky': ['sticky', 'css-sticky', 'position-sticky'],
+      'backdrop-filter': ['backdrop-filter', 'css-backdrop-filter'],
       
       // JavaScript Features
-      'fetch': ['fetch'],
-      'async function': ['async-await'],
-      'await ': ['async-await'],
-      '=>': ['arrow-functions'],
-      'IntersectionObserver': ['intersection-observer'],
-      'ResizeObserver': ['resize-observer'],
-      'Promise.': ['promises'],
+      'fetch': ['fetch', 'fetch-api'],
+      'async function': ['async-await', 'async-functions'],
+      'await': ['async-await', 'async-functions'],
+      '=>': ['arrow-functions', 'es6-arrow-functions'],
+      'IntersectionObserver': ['intersection-observer', 'intersectionobserver-api'],
+      'ResizeObserver': ['resize-observer', 'resizeobserver-api'],
+      'Promise.': ['promises', 'es6-promises'],
+      'structuredClone': ['structured-clone', 'structuredclone'],
+      'querySelectorAll': ['queryselector', 'dom-selectors'],
+      'addEventListener': ['event-listeners', 'dom-events'],
+      'querySelector': ['queryselector', 'dom-selectors'],
+      'class': ['es6-classes', 'javascript-classes'],
+      'const': ['const', 'es6-const'],
       
       // HTML Features
-      'dialog': ['dialog'],
-      'loading="lazy"': ['loading-lazy'],
-      'details': ['details'],
-      'picture': ['picture'],
+      'dialog': ['dialog', 'html-dialog', 'dialog-element'],
+      'loading="lazy"': ['loading-lazy', 'lazy-loading', 'img-loading'],
+      'details': ['details', 'html-details', 'details-element'],
+      'summary': ['details', 'html-details'],
+      'picture': ['picture', 'html-picture', 'picture-element'],
+      'source': ['picture', 'html-picture'],
+      'aria-': ['aria', 'wai-aria', 'accessibility'],
     };
     
-    return mappings[featureName] || [featureName.toLowerCase()];
+    // Also try the feature name as-is and normalized versions
+    const possibleIds = mappings[featureName] || [];
+    
+    // Add the original feature name and common variations
+    possibleIds.push(
+      featureName.toLowerCase(),
+      featureName.replace(/[^a-z0-9]/gi, '-').toLowerCase(),
+      featureName.replace(/[^a-z0-9]/gi, '').toLowerCase(),
+      featureName.replace(/:/g, '').trim().toLowerCase(),
+      featureName.replace(/display:\s*/g, '').toLowerCase()
+    );
+    
+    // Remove duplicates
+    return [...new Set(possibleIds)];
   }
   
-  /**
-   * Maps our detected feature names to BCD (Browser Compat Data) keys
-   */
-  private mapFeatureNameToBCDKey(featureName: string): string | null {
-    const mappings: Record<string, string> = {
-      // CSS Properties
-      'display: grid': 'css.properties.display.grid',
-      'display: flex': 'css.properties.display.flex',
-      'position: sticky': 'css.properties.position.sticky',
-      'aspect-ratio': 'css.properties.aspect-ratio',
-      'gap': 'css.properties.gap',
-      'scroll-behavior': 'css.properties.scroll-behavior',
-      'backdrop-filter': 'css.properties.backdrop-filter',
-      'container-type': 'css.properties.container-type',
-      
-      // CSS Selectors
-      ':has': 'css.selectors.has',
-      ':is': 'css.selectors.is',
-      ':where': 'css.selectors.where',
-      ':focus-visible': 'css.selectors.focus-visible',
-      
-      // CSS Functions
-      'clamp': 'css.types.clamp',
-      'min': 'css.types.min',
-      'max': 'css.types.max',
-      
-      // JavaScript APIs
-      'fetch': 'api.fetch',
-      'IntersectionObserver': 'api.IntersectionObserver',
-      'ResizeObserver': 'api.ResizeObserver',
-      
-      // HTML Elements
-      'dialog': 'html.elements.dialog',
-      'details': 'html.elements.details',
-      'picture': 'html.elements.picture',
-      
-      // HTML Attributes
-      'loading="lazy"': 'html.elements.img.loading',
-    };
-    
-    return mappings[featureName] || null;
-  }
-  
-  /**
-   * Converts web-features package data to our BaselineInfo format
-   */
-  private convertWebFeatureToBaselineInfo(webFeature: any): BaselineInfo {
-    const status = webFeature.status.baseline;
-    
-    // Convert web-features baseline status to our format
-    let baselineStatus: BaselineStatus;
-    if (status === 'high') {
-      baselineStatus = 'high';
-    } else if (status === 'low') {
-      baselineStatus = 'limited';
-    } else {
-      baselineStatus = 'low';
-    }
-    
-    // Extract browser support data
-    const supportedBrowsers = [];
-    const support = webFeature.status.support || {};
-    
-    for (const [browser, version] of Object.entries(support)) {
-      if (typeof version === 'string') {
-        // Map browser names to our format
-        const browserMap: Record<string, string> = {
-          'chrome': 'chrome',
-          'chrome_android': 'chrome',
-          'firefox': 'firefox',
-          'firefox_android': 'firefox',
-          'safari': 'safari',
-          'safari_ios': 'safari',
-          'edge': 'edge',
-        };
-        
-        const mappedBrowser = browserMap[browser];
-        if (mappedBrowser) {
-          supportedBrowsers.push({
-            browser: mappedBrowser,
-            version: version,
-          });
-        }
-      }
-    }
-    
-    return {
-      status: baselineStatus,
-      isBaseline2023: Boolean(webFeature.status.baseline_high_date && 
-                             new Date(webFeature.status.baseline_high_date).getFullYear() <= 2023),
-      isWidelySupported: status === 'high',
-      supportedBrowsers,
-      dateSupported: webFeature.status.baseline_high_date || 
-                     webFeature.status.baseline_low_date || null,
-    };
-  }
-  
-  /**
-   * Converts compute-baseline data to our BaselineInfo format
-   */
-  private convertComputeBaselineToBaselineInfo(computeStatus: any): BaselineInfo {
-    const status = computeStatus.baseline;
-    
-    let baselineStatus: BaselineStatus;
-    if (status === 'high') {
-      baselineStatus = 'high';
-    } else if (status === 'low') {
-      baselineStatus = 'limited';
-    } else {
-      baselineStatus = 'low';
-    }
-    
-    // Extract browser support data
-    const supportedBrowsers = [];
-    const support = computeStatus.support || {};
-    
-    for (const [browser, version] of Object.entries(support)) {
-      if (typeof version === 'string') {
-        supportedBrowsers.push({
-          browser: browser.toLowerCase(),
-          version: version,
-        });
-      }
-    }
-    
-    return {
-      status: baselineStatus,
-      isBaseline2023: Boolean(computeStatus.baseline_high_date && 
-                             new Date(computeStatus.baseline_high_date).getFullYear() <= 2023),
-      isWidelySupported: status === 'high',
-      supportedBrowsers,
-      dateSupported: computeStatus.baseline_high_date || 
-                     computeStatus.baseline_low_date || null,
-    };
-  }
+
   
   /**
    * Provides fallback baseline data for common web features

@@ -1,44 +1,128 @@
 import { logger } from '../utils/logger.js';
 export class BaselineService {
     baselineCache = new Map();
-    webFeaturesData = null;
-    webFeaturesInitialized = false;
-    async initializeWebFeatures() {
-        if (this.webFeaturesInitialized) {
-            return;
-        }
+    API_BASE_URL = 'https://api.webstatus.dev/v1/features';
+    API_TIMEOUT = 10000;
+    async getFromBaselineAPI(featureName) {
         try {
-            const webFeaturesModule = await import('web-features');
-            const webFeatures = webFeaturesModule?.default?.default ||
-                webFeaturesModule?.default ||
-                webFeaturesModule;
-            const features = webFeatures?.features ||
-                webFeatures?.default?.features ||
-                (webFeatures.default && webFeatures.default.features);
-            const browsers = webFeatures?.browsers ||
-                webFeatures?.default?.browsers ||
-                (webFeatures.default && webFeatures.default.browsers);
-            if (!features || typeof features !== 'object' || Object.keys(features).length === 0) {
-                logger.warn('web-features package loaded but no valid features data found');
-                this.webFeaturesData = null;
-                return;
+            const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
+            for (const featureId of possibleIds) {
+                try {
+                    const query = encodeURIComponent(`id:${featureId}`);
+                    const url = `${this.API_BASE_URL}?q=${query}`;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
+                    const response = await fetch(url, {
+                        signal: controller.signal,
+                        headers: {
+                            'Accept': 'application/json',
+                            'User-Agent': 'baseline-analyzer-ts/1.0.0'
+                        }
+                    });
+                    clearTimeout(timeoutId);
+                    if (!response.ok) {
+                        logger.debug(`API request failed for ${featureId}: ${response.status} ${response.statusText}`);
+                        continue;
+                    }
+                    const result = await response.json();
+                    if (result.data && result.data.length > 0) {
+                        const feature = result.data[0];
+                        if (feature && feature.baseline) {
+                            logger.info(`[DATA SOURCE] Using REAL API data for '${featureName}' from Web Platform Status API`);
+                            return this.convertAPIResponseToBaselineInfo(feature);
+                        }
+                        logger.debug(`Feature ${featureId} found but has no baseline data`);
+                    }
+                    else {
+                        logger.debug(`No data found for feature ${featureId}`);
+                    }
+                }
+                catch (error) {
+                    if (error instanceof Error && error.name === 'AbortError') {
+                        logger.debug(`API request timeout for ${featureId}`);
+                    }
+                    else {
+                        logger.debug(`Error fetching ${featureId} from API: ${error instanceof Error ? error.message : String(error)}`);
+                    }
+                    continue;
+                }
             }
-            this.webFeaturesData = { features, browsers };
-            logger.debug(`✅ web-features package loaded successfully with ${Object.keys(features).length} features`);
+            try {
+                const nameQuery = encodeURIComponent(featureName);
+                const url = `${this.API_BASE_URL}?q=${nameQuery}`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'baseline-analyzer-ts/1.0.0'
+                    }
+                });
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.data && result.data.length > 0) {
+                        const bestMatch = result.data.find((feature) => feature.name && feature.name.toLowerCase().includes(featureName.toLowerCase()));
+                        if (bestMatch && bestMatch.baseline) {
+                            logger.info(`[DATA SOURCE] Using REAL API data for '${featureName}' from Web Platform Status API (name search)`);
+                            return this.convertAPIResponseToBaselineInfo(bestMatch);
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                logger.debug(`Error in fallback name search for ${featureName}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+            return null;
         }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            logger.warn(`web-features package not available: ${errorMessage}`);
-            this.webFeaturesData = null;
+            logger.debug(`Error accessing Web Platform Status API: ${error instanceof Error ? error.message : String(error)}`);
+            return null;
         }
-        this.webFeaturesInitialized = true;
+    }
+    convertAPIResponseToBaselineInfo(apiFeature) {
+        const baseline = apiFeature.baseline;
+        if (!baseline) {
+            throw new Error('Feature has no baseline data');
+        }
+        const status = baseline.status;
+        let baselineStatus;
+        if (status === 'widely') {
+            baselineStatus = 'high';
+        }
+        else if (status === 'newly') {
+            baselineStatus = 'limited';
+        }
+        else {
+            baselineStatus = 'low';
+        }
+        const supportedBrowsers = [];
+        if (apiFeature.browser_implementations) {
+            for (const [browser, data] of Object.entries(apiFeature.browser_implementations)) {
+                if (data && data.version) {
+                    supportedBrowsers.push({
+                        browser: browser.toLowerCase(),
+                        version: data.version,
+                    });
+                }
+            }
+        }
+        return {
+            status: baselineStatus,
+            isBaseline2023: Boolean(baseline.high_date &&
+                new Date(baseline.high_date).getFullYear() <= 2023),
+            isWidelySupported: status === 'widely',
+            supportedBrowsers,
+            dateSupported: baseline.high_date || baseline.low_date || null,
+        };
     }
     async getBaselineInfo(featureName) {
         if (this.baselineCache.has(featureName)) {
             return this.baselineCache.get(featureName) || null;
         }
         logger.debug(`Looking up baseline info for: ${featureName}`);
-        let baselineData = await this.getFromWebFeaturesPackage(featureName);
+        let baselineData = await this.getFromBaselineAPI(featureName);
         if (!baselineData) {
             baselineData = this.getFallbackBaselineData(featureName);
         }
@@ -57,183 +141,48 @@ export class BaselineService {
         }
         return true;
     }
-    async getFromWebFeaturesPackage(featureName) {
-        try {
-            await this.initializeWebFeatures();
-            if (!this.webFeaturesData || !this.webFeaturesData.features) {
-                logger.debug('No web-features data available');
-                return null;
-            }
-            const features = this.webFeaturesData.features;
-            const possibleIds = this.mapFeatureNameToWebFeatureId(featureName);
-            for (const featureId of possibleIds) {
-                const feature = features[featureId];
-                if (feature && feature.status) {
-                    logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from web-features`);
-                    logger.debug(`Found web-features data for: ${featureName} (id: ${featureId})`);
-                    return this.convertWebFeatureToBaselineInfo(feature);
-                }
-            }
-            const bcdKey = this.mapFeatureNameToBCDKey(featureName);
-            if (bcdKey) {
-                try {
-                    const computeBaseline = await import('compute-baseline');
-                    const getStatus = computeBaseline.getStatus || computeBaseline.default?.getStatus;
-                    if (getStatus) {
-                        const status = getStatus(null, bcdKey);
-                        if (status) {
-                            logger.info(`[DATA SOURCE] Using REAL data for '${featureName}' from compute-baseline`);
-                            logger.debug(`Found compute-baseline data for: ${featureName} (BCD: ${bcdKey})`);
-                            return this.convertComputeBaselineToBaselineInfo(status);
-                        }
-                    }
-                    else {
-                        logger.debug(`getStatus function not found in compute-baseline package`);
-                    }
-                }
-                catch (error) {
-                    logger.debug(`Error using compute-baseline for ${bcdKey}: ${error}`);
-                }
-            }
-            logger.debug(`No web-features data found for: ${featureName}`);
-            return null;
-        }
-        catch (error) {
-            logger.debug(`Error accessing web-features package: ${error}`);
-            return null;
-        }
-    }
     mapFeatureNameToWebFeatureId(featureName) {
         const mappings = {
-            'display: grid': ['grid'],
-            'display: flex': ['flexbox'],
-            ':has': ['has'],
-            '@container': ['container-queries'],
-            'container-type': ['container-queries'],
-            'clamp': ['css-math-functions'],
-            'min': ['css-math-functions'],
-            'max': ['css-math-functions'],
-            'aspect-ratio': ['aspect-ratio'],
-            'gap': ['gap'],
-            'scroll-behavior': ['scroll-behavior'],
-            'position: sticky': ['sticky'],
-            'backdrop-filter': ['backdrop-filter'],
-            'fetch': ['fetch'],
-            'async function': ['async-await'],
-            'await ': ['async-await'],
-            '=>': ['arrow-functions'],
-            'IntersectionObserver': ['intersection-observer'],
-            'ResizeObserver': ['resize-observer'],
-            'Promise.': ['promises'],
-            'dialog': ['dialog'],
-            'loading="lazy"': ['loading-lazy'],
-            'details': ['details'],
-            'picture': ['picture'],
+            'display: grid': ['grid', 'css-grid', 'grid-layout'],
+            'grid-template': ['grid', 'css-grid'],
+            'grid-template-columns': ['grid', 'css-grid'],
+            'display: flex': ['flexbox', 'css-flexbox', 'flexible-box'],
+            ':has': ['has', 'css-has', 'has-selector'],
+            '@container': ['container-queries', 'css-container-queries', 'cq'],
+            'container-type': ['container-queries', 'css-container-queries'],
+            'container-name': ['container-queries', 'css-container-queries'],
+            'clamp': ['css-math-functions', 'clamp', 'css-clamp'],
+            'min': ['css-math-functions', 'css-min'],
+            'max': ['css-math-functions', 'css-max'],
+            'aspect-ratio': ['aspect-ratio', 'css-aspect-ratio'],
+            'gap': ['gap', 'css-gap', 'grid-gap'],
+            'scroll-behavior': ['scroll-behavior', 'css-scroll-behavior'],
+            'position: sticky': ['sticky', 'css-sticky', 'position-sticky'],
+            'backdrop-filter': ['backdrop-filter', 'css-backdrop-filter'],
+            'fetch': ['fetch', 'fetch-api'],
+            'async function': ['async-await', 'async-functions'],
+            'await': ['async-await', 'async-functions'],
+            '=>': ['arrow-functions', 'es6-arrow-functions'],
+            'IntersectionObserver': ['intersection-observer', 'intersectionobserver-api'],
+            'ResizeObserver': ['resize-observer', 'resizeobserver-api'],
+            'Promise.': ['promises', 'es6-promises'],
+            'structuredClone': ['structured-clone', 'structuredclone'],
+            'querySelectorAll': ['queryselector', 'dom-selectors'],
+            'addEventListener': ['event-listeners', 'dom-events'],
+            'querySelector': ['queryselector', 'dom-selectors'],
+            'class': ['es6-classes', 'javascript-classes'],
+            'const': ['const', 'es6-const'],
+            'dialog': ['dialog', 'html-dialog', 'dialog-element'],
+            'loading="lazy"': ['loading-lazy', 'lazy-loading', 'img-loading'],
+            'details': ['details', 'html-details', 'details-element'],
+            'summary': ['details', 'html-details'],
+            'picture': ['picture', 'html-picture', 'picture-element'],
+            'source': ['picture', 'html-picture'],
+            'aria-': ['aria', 'wai-aria', 'accessibility'],
         };
-        return mappings[featureName] || [featureName.toLowerCase()];
-    }
-    mapFeatureNameToBCDKey(featureName) {
-        const mappings = {
-            'display: grid': 'css.properties.display.grid',
-            'display: flex': 'css.properties.display.flex',
-            'position: sticky': 'css.properties.position.sticky',
-            'aspect-ratio': 'css.properties.aspect-ratio',
-            'gap': 'css.properties.gap',
-            'scroll-behavior': 'css.properties.scroll-behavior',
-            'backdrop-filter': 'css.properties.backdrop-filter',
-            'container-type': 'css.properties.container-type',
-            ':has': 'css.selectors.has',
-            ':is': 'css.selectors.is',
-            ':where': 'css.selectors.where',
-            ':focus-visible': 'css.selectors.focus-visible',
-            'clamp': 'css.types.clamp',
-            'min': 'css.types.min',
-            'max': 'css.types.max',
-            'fetch': 'api.fetch',
-            'IntersectionObserver': 'api.IntersectionObserver',
-            'ResizeObserver': 'api.ResizeObserver',
-            'dialog': 'html.elements.dialog',
-            'details': 'html.elements.details',
-            'picture': 'html.elements.picture',
-            'loading="lazy"': 'html.elements.img.loading',
-        };
-        return mappings[featureName] || null;
-    }
-    convertWebFeatureToBaselineInfo(webFeature) {
-        const status = webFeature.status.baseline;
-        let baselineStatus;
-        if (status === 'high') {
-            baselineStatus = 'high';
-        }
-        else if (status === 'low') {
-            baselineStatus = 'limited';
-        }
-        else {
-            baselineStatus = 'low';
-        }
-        const supportedBrowsers = [];
-        const support = webFeature.status.support || {};
-        for (const [browser, version] of Object.entries(support)) {
-            if (typeof version === 'string') {
-                const browserMap = {
-                    'chrome': 'chrome',
-                    'chrome_android': 'chrome',
-                    'firefox': 'firefox',
-                    'firefox_android': 'firefox',
-                    'safari': 'safari',
-                    'safari_ios': 'safari',
-                    'edge': 'edge',
-                };
-                const mappedBrowser = browserMap[browser];
-                if (mappedBrowser) {
-                    supportedBrowsers.push({
-                        browser: mappedBrowser,
-                        version: version,
-                    });
-                }
-            }
-        }
-        return {
-            status: baselineStatus,
-            isBaseline2023: Boolean(webFeature.status.baseline_high_date &&
-                new Date(webFeature.status.baseline_high_date).getFullYear() <= 2023),
-            isWidelySupported: status === 'high',
-            supportedBrowsers,
-            dateSupported: webFeature.status.baseline_high_date ||
-                webFeature.status.baseline_low_date || null,
-        };
-    }
-    convertComputeBaselineToBaselineInfo(computeStatus) {
-        const status = computeStatus.baseline;
-        let baselineStatus;
-        if (status === 'high') {
-            baselineStatus = 'high';
-        }
-        else if (status === 'low') {
-            baselineStatus = 'limited';
-        }
-        else {
-            baselineStatus = 'low';
-        }
-        const supportedBrowsers = [];
-        const support = computeStatus.support || {};
-        for (const [browser, version] of Object.entries(support)) {
-            if (typeof version === 'string') {
-                supportedBrowsers.push({
-                    browser: browser.toLowerCase(),
-                    version: version,
-                });
-            }
-        }
-        return {
-            status: baselineStatus,
-            isBaseline2023: Boolean(computeStatus.baseline_high_date &&
-                new Date(computeStatus.baseline_high_date).getFullYear() <= 2023),
-            isWidelySupported: status === 'high',
-            supportedBrowsers,
-            dateSupported: computeStatus.baseline_high_date ||
-                computeStatus.baseline_low_date || null,
-        };
+        const possibleIds = mappings[featureName] || [];
+        possibleIds.push(featureName.toLowerCase(), featureName.replace(/[^a-z0-9]/gi, '-').toLowerCase(), featureName.replace(/[^a-z0-9]/gi, '').toLowerCase(), featureName.replace(/:/g, '').trim().toLowerCase(), featureName.replace(/display:\s*/g, '').toLowerCase());
+        return [...new Set(possibleIds)];
     }
     getFallbackBaselineData(featureName) {
         logger.warn(`[DATA SOURCE] Using FALLBACK data for '${featureName}'`);

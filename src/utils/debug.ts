@@ -47,114 +47,77 @@ export function debugGitHubPayload(payload: unknown): void {
 /**
  * Debug helper to test NPM package availability and data structure
  */
-export async function debugNpmPackages(): Promise<void> {
-  logger.info('=== NPM PACKAGES DEBUG ===');
+export async function debugWebPlatformAPI(): Promise<void> {
+  logger.info('=== WEB PLATFORM STATUS API DEBUG ===');
   
-  // Test web-features package
+  const API_BASE_URL = 'https://api.webstatus.dev/v1/features';
+  
+  // Test API connectivity
   try {
-    // Import with comprehensive fallback handling for all bundling scenarios
-    const webFeaturesModule = await import('web-features');
+    logger.info('🔍 Testing API connectivity...');
     
-    // Handle ALL possible bundling scenarios with proper type casting
-    const webFeatures = 
-      (webFeaturesModule as any)?.default?.default ||  // Double-wrapped default
-      (webFeaturesModule as any)?.default ||           // Single default wrapper
-      webFeaturesModule;                               // Direct named exports
-
-    // Extract data with multiple fallback patterns
-    const features = 
-      webFeatures?.features ||                // Direct access
-      (webFeatures as any)?.default?.features ||       // Default wrapped
-      ((webFeatures as any).default && (webFeatures as any).default.features); // Nested default
-      
-    const groups = 
-      webFeatures?.groups ||
-      (webFeatures as any)?.default?.groups ||
-      ((webFeatures as any).default && (webFeatures as any).default.groups);
-      
-    const browsers = 
-      webFeatures?.browsers ||
-      (webFeatures as any)?.default?.browsers ||
-      ((webFeatures as any).default && (webFeatures as any).default.browsers);
+    const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
     
-    if (features && typeof features === 'object' && Object.keys(features).length > 0) {
-      
-      if (features && groups && browsers) {
-        logger.info('✅ web-features package available');
-        logger.info(`📊 Features count: ${Object.keys(features).length}`);
-        logger.info(`📊 Groups count: ${Object.keys(groups).length}`);
-        logger.info(`📊 Browsers count: ${Object.keys(browsers).length}`);
+    for (const featureId of testFeatures) {
+      try {
+        const query = encodeURIComponent(`id:${featureId}`);
+        const url = `${API_BASE_URL}?q=${query}`;
         
-        // Test some specific features we care about
-        const testFeatures = ['grid', 'flexbox', 'has', 'container-queries', 'fetch'];
-        logger.info('🔍 Testing specific features:');
-        
-        for (const featureId of testFeatures) {
-          const feature = features[featureId];
-          if (feature) {
-            logger.info(`  ✅ ${featureId}: ${feature.name} - baseline: ${feature.status?.baseline}`);
-            logger.info(`     Support: ${JSON.stringify(feature.status?.support || {})}`);
-          } else {
-            logger.info(`  ❌ ${featureId}: Not found`);
+        const startTime = Date.now();
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'baseline-analyzer-ts/1.0.0'
           }
-        }
-        
-        // Test groups
-        logger.info('🔍 Available groups:');
-        Object.entries(groups).slice(0, 5).forEach(([id, group]: [string, any]) => {
-          logger.info(`  📁 ${id}: ${group.name}`);
         });
-      } else {
-        logger.warn('❌ web-features: Invalid module structure');
+        const duration = Date.now() - startTime;
+        
+        if (response.ok) {
+          const result = await response.json() as any;
+          if (result.data && result.data.length > 0) {
+            const feature = result.data[0];
+            logger.info(`  ✅ ${featureId}: ${feature.name} (${duration}ms)`);
+            if (feature.baseline) {
+              logger.info(`     Baseline: ${feature.baseline.status}`);
+              logger.info(`     High date: ${feature.baseline.high_date || 'N/A'}`);
+              logger.info(`     Low date: ${feature.baseline.low_date || 'N/A'}`);
+            }
+          } else {
+            logger.info(`  ❓ ${featureId}: No data found (${duration}ms)`);
+          }
+        } else {
+          logger.warn(`  ❌ ${featureId}: HTTP ${response.status} (${duration}ms)`);
+        }
+      } catch (error) {
+        logger.warn(`  💥 ${featureId}: ${(error as Error).message}`);
       }
-    } else {
-      logger.warn('❌ web-features: Invalid module export');
     }
     
-  } catch (error) {
-    logger.warn('❌ web-features package error:', (error as Error).message);
-  }
-  
-  // Test compute-baseline package
-  try {
-    const computeBaseline = await import('compute-baseline');
-    logger.info('✅ compute-baseline package available');
-    
-    const getStatus = (computeBaseline as any).getStatus;
-    if (getStatus) {
-      logger.info('✅ getStatus function available');
+    // Test search functionality
+    logger.info('🔍 Testing search functionality...');
+    try {
+      const searchQuery = encodeURIComponent('CSS Grid');
+      const url = `${API_BASE_URL}?q=${searchQuery}`;
       
-      // Test some BCD keys
-      const testBCDKeys = [
-        'css.properties.display.grid',
-        'css.selectors.has',
-        'api.fetch',
-        'html.elements.dialog'
-      ];
-      
-      logger.info('🔍 Testing specific BCD keys:');
-      for (const bcdKey of testBCDKeys) {
-        try {
-          const status = getStatus(null, bcdKey);
-          if (status) {
-            logger.info(`  ✅ ${bcdKey}: baseline: ${status.baseline}`);
-            logger.info(`     Support: ${JSON.stringify(status.support || {})}`);
-          } else {
-            logger.info(`  ❌ ${bcdKey}: No data returned`);
-          }
-        } catch (error) {
-          logger.info(`  ❌ ${bcdKey}: Error - ${(error as Error).message}`);
+      const response = await fetch(url);
+      if (response.ok) {
+        const result = await response.json() as any;
+        logger.info(`✅ Search returned ${result.data?.length || 0} results`);
+        if (result.data && result.data.length > 0) {
+          result.data.slice(0, 3).forEach((feature: any, index: number) => {
+            logger.info(`  ${index + 1}. ${feature.name} (${feature.feature_id})`);
+          });
         }
       }
-    } else {
-      logger.warn('❌ getStatus function not found in compute-baseline');
+    } catch (error) {
+      logger.warn(`Search test failed: ${(error as Error).message}`);
     }
     
   } catch (error) {
-    logger.warn('❌ compute-baseline package error:', (error as Error).message);
+    logger.warn('❌ Web Platform Status API error:', (error as Error).message);
   }
   
-  logger.info('=== END NPM DEBUG ===');
+  logger.info('=== END API DEBUG ===');
 }
 
 /**
@@ -218,7 +181,7 @@ export async function testBaselineService(): Promise<void> {
 async function runDebugTests(): Promise<void> {
   logger.info('🚀 Starting debug tests...');
   
-  await debugNpmPackages();
+  await debugWebPlatformAPI();
   await testBaselineService();
   
   logger.info('✅ Debug tests complete!');
