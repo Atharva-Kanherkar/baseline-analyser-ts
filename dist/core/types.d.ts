@@ -13,6 +13,7 @@ export declare const AnalyzerConfig: z.ZodObject<{
     enableAIReview: z.ZodDefault<z.ZodBoolean>;
     githubToken: z.ZodString;
     openaiApiKey: z.ZodOptional<z.ZodString>;
+    perplexityApiKey: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     targetBrowsers: string[];
     blockingLevel: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
@@ -21,6 +22,7 @@ export declare const AnalyzerConfig: z.ZodObject<{
     enableAIReview: boolean;
     githubToken: string;
     openaiApiKey?: string | undefined;
+    perplexityApiKey?: string | undefined;
 }, {
     targetBrowsers: string[];
     githubToken: string;
@@ -29,6 +31,7 @@ export declare const AnalyzerConfig: z.ZodObject<{
     hugePRThreshold?: number | undefined;
     enableAIReview?: boolean | undefined;
     openaiApiKey?: string | undefined;
+    perplexityApiKey?: string | undefined;
 }>;
 export type AnalyzerConfig = z.infer<typeof AnalyzerConfig>;
 export declare const PRSize: z.ZodEnum<["SMALL", "MEDIUM", "LARGE", "HUGE"]>;
@@ -298,6 +301,311 @@ export declare const RiskAssessment: z.ZodObject<{
     hasBreakingChange: boolean;
 }>;
 export type RiskAssessment = z.infer<typeof RiskAssessment>;
+export declare const AISuggestion: z.ZodObject<{
+    type: z.ZodEnum<["alternative", "workaround", "polyfill", "migration", "best_practice"]>;
+    title: z.ZodString;
+    description: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
+    resources: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    impact: z.ZodEnum<["low", "medium", "high"]>;
+}, "strip", z.ZodTypeAny, {
+    type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+    title: string;
+    description: string;
+    impact: "high" | "low" | "medium";
+    code?: string | undefined;
+    resources?: string[] | undefined;
+}, {
+    type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+    title: string;
+    description: string;
+    impact: "high" | "low" | "medium";
+    code?: string | undefined;
+    resources?: string[] | undefined;
+}>;
+export type AISuggestion = z.infer<typeof AISuggestion>;
+export declare const AIAnalysis: z.ZodObject<{
+    feature: z.ZodString;
+    baseline: z.ZodNullable<z.ZodObject<{
+        status: z.ZodEnum<["high", "limited", "low", "unknown"]>;
+        isBaseline2023: z.ZodBoolean;
+        isWidelySupported: z.ZodBoolean;
+        supportedBrowsers: z.ZodArray<z.ZodObject<{
+            browser: z.ZodString;
+            version: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            browser: string;
+            version: string;
+        }, {
+            browser: string;
+            version: string;
+        }>, "many">;
+        dateSupported: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        status: "unknown" | "high" | "limited" | "low";
+        isBaseline2023: boolean;
+        isWidelySupported: boolean;
+        supportedBrowsers: {
+            browser: string;
+            version: string;
+        }[];
+        dateSupported: string | null;
+    }, {
+        status: "unknown" | "high" | "limited" | "low";
+        isBaseline2023: boolean;
+        isWidelySupported: boolean;
+        supportedBrowsers: {
+            browser: string;
+            version: string;
+        }[];
+        dateSupported: string | null;
+    }>>;
+    risk: z.ZodObject<{
+        feature: z.ZodObject<{
+            name: z.ZodString;
+            type: z.ZodEnum<["CSS", "JAVASCRIPT", "HTML", "WEB_API"]>;
+            location: z.ZodObject<{
+                file: z.ZodString;
+                line: z.ZodNumber;
+                snippet: z.ZodString;
+            }, "strip", z.ZodTypeAny, {
+                file: string;
+                line: number;
+                snippet: string;
+            }, {
+                file: string;
+                line: number;
+                snippet: string;
+            }>;
+        }, "strip", z.ZodTypeAny, {
+            type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+            name: string;
+            location: {
+                file: string;
+                line: number;
+                snippet: string;
+            };
+        }, {
+            type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+            name: string;
+            location: {
+                file: string;
+                line: number;
+                snippet: string;
+            };
+        }>;
+        baseline: z.ZodNullable<z.ZodObject<{
+            status: z.ZodEnum<["high", "limited", "low", "unknown"]>;
+            isBaseline2023: z.ZodBoolean;
+            isWidelySupported: z.ZodBoolean;
+            supportedBrowsers: z.ZodArray<z.ZodObject<{
+                browser: z.ZodString;
+                version: z.ZodString;
+            }, "strip", z.ZodTypeAny, {
+                browser: string;
+                version: string;
+            }, {
+                browser: string;
+                version: string;
+            }>, "many">;
+            dateSupported: z.ZodNullable<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        }, {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        }>>;
+        risk: z.ZodEnum<["CRITICAL", "HIGH", "MEDIUM", "LOW", "IGNORE"]>;
+        actionRequired: z.ZodEnum<["BLOCK_PR", "REQUIRE_REVIEW", "COMMENT_ONLY", "NONE"]>;
+        reason: z.ZodString;
+        recommendation: z.ZodString;
+        hasBreakingChange: z.ZodBoolean;
+    }, "strip", z.ZodTypeAny, {
+        feature: {
+            type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+            name: string;
+            location: {
+                file: string;
+                line: number;
+                snippet: string;
+            };
+        };
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+        actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+        reason: string;
+        recommendation: string;
+        hasBreakingChange: boolean;
+    }, {
+        feature: {
+            type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+            name: string;
+            location: {
+                file: string;
+                line: number;
+                snippet: string;
+            };
+        };
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+        actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+        reason: string;
+        recommendation: string;
+        hasBreakingChange: boolean;
+    }>;
+    suggestions: z.ZodArray<z.ZodObject<{
+        type: z.ZodEnum<["alternative", "workaround", "polyfill", "migration", "best_practice"]>;
+        title: z.ZodString;
+        description: z.ZodString;
+        code: z.ZodOptional<z.ZodString>;
+        resources: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        impact: z.ZodEnum<["low", "medium", "high"]>;
+    }, "strip", z.ZodTypeAny, {
+        type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+        title: string;
+        description: string;
+        impact: "high" | "low" | "medium";
+        code?: string | undefined;
+        resources?: string[] | undefined;
+    }, {
+        type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+        title: string;
+        description: string;
+        impact: "high" | "low" | "medium";
+        code?: string | undefined;
+        resources?: string[] | undefined;
+    }>, "many">;
+    reasoning: z.ZodString;
+    confidence: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    feature: string;
+    baseline: {
+        status: "unknown" | "high" | "limited" | "low";
+        isBaseline2023: boolean;
+        isWidelySupported: boolean;
+        supportedBrowsers: {
+            browser: string;
+            version: string;
+        }[];
+        dateSupported: string | null;
+    } | null;
+    risk: {
+        feature: {
+            type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+            name: string;
+            location: {
+                file: string;
+                line: number;
+                snippet: string;
+            };
+        };
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+        actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+        reason: string;
+        recommendation: string;
+        hasBreakingChange: boolean;
+    };
+    suggestions: {
+        type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+        title: string;
+        description: string;
+        impact: "high" | "low" | "medium";
+        code?: string | undefined;
+        resources?: string[] | undefined;
+    }[];
+    reasoning: string;
+    confidence: number;
+}, {
+    feature: string;
+    baseline: {
+        status: "unknown" | "high" | "limited" | "low";
+        isBaseline2023: boolean;
+        isWidelySupported: boolean;
+        supportedBrowsers: {
+            browser: string;
+            version: string;
+        }[];
+        dateSupported: string | null;
+    } | null;
+    risk: {
+        feature: {
+            type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+            name: string;
+            location: {
+                file: string;
+                line: number;
+                snippet: string;
+            };
+        };
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+        actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+        reason: string;
+        recommendation: string;
+        hasBreakingChange: boolean;
+    };
+    suggestions: {
+        type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+        title: string;
+        description: string;
+        impact: "high" | "low" | "medium";
+        code?: string | undefined;
+        resources?: string[] | undefined;
+    }[];
+    reasoning: string;
+    confidence: number;
+}>;
+export type AIAnalysis = z.infer<typeof AIAnalysis>;
 export declare const AnalysisResult: z.ZodObject<{
     prContext: z.ZodObject<{
         number: z.ZodNumber;
@@ -475,6 +783,287 @@ export declare const AnalysisResult: z.ZodObject<{
         recommendation: string;
         hasBreakingChange: boolean;
     }>, "many">;
+    aiAnalyses: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        feature: z.ZodString;
+        baseline: z.ZodNullable<z.ZodObject<{
+            status: z.ZodEnum<["high", "limited", "low", "unknown"]>;
+            isBaseline2023: z.ZodBoolean;
+            isWidelySupported: z.ZodBoolean;
+            supportedBrowsers: z.ZodArray<z.ZodObject<{
+                browser: z.ZodString;
+                version: z.ZodString;
+            }, "strip", z.ZodTypeAny, {
+                browser: string;
+                version: string;
+            }, {
+                browser: string;
+                version: string;
+            }>, "many">;
+            dateSupported: z.ZodNullable<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        }, {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        }>>;
+        risk: z.ZodObject<{
+            feature: z.ZodObject<{
+                name: z.ZodString;
+                type: z.ZodEnum<["CSS", "JAVASCRIPT", "HTML", "WEB_API"]>;
+                location: z.ZodObject<{
+                    file: z.ZodString;
+                    line: z.ZodNumber;
+                    snippet: z.ZodString;
+                }, "strip", z.ZodTypeAny, {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                }, {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                }>;
+            }, "strip", z.ZodTypeAny, {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            }, {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            }>;
+            baseline: z.ZodNullable<z.ZodObject<{
+                status: z.ZodEnum<["high", "limited", "low", "unknown"]>;
+                isBaseline2023: z.ZodBoolean;
+                isWidelySupported: z.ZodBoolean;
+                supportedBrowsers: z.ZodArray<z.ZodObject<{
+                    browser: z.ZodString;
+                    version: z.ZodString;
+                }, "strip", z.ZodTypeAny, {
+                    browser: string;
+                    version: string;
+                }, {
+                    browser: string;
+                    version: string;
+                }>, "many">;
+                dateSupported: z.ZodNullable<z.ZodString>;
+            }, "strip", z.ZodTypeAny, {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            }, {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            }>>;
+            risk: z.ZodEnum<["CRITICAL", "HIGH", "MEDIUM", "LOW", "IGNORE"]>;
+            actionRequired: z.ZodEnum<["BLOCK_PR", "REQUIRE_REVIEW", "COMMENT_ONLY", "NONE"]>;
+            reason: z.ZodString;
+            recommendation: z.ZodString;
+            hasBreakingChange: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            feature: {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            };
+            baseline: {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            } | null;
+            risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+            actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+            reason: string;
+            recommendation: string;
+            hasBreakingChange: boolean;
+        }, {
+            feature: {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            };
+            baseline: {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            } | null;
+            risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+            actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+            reason: string;
+            recommendation: string;
+            hasBreakingChange: boolean;
+        }>;
+        suggestions: z.ZodArray<z.ZodObject<{
+            type: z.ZodEnum<["alternative", "workaround", "polyfill", "migration", "best_practice"]>;
+            title: z.ZodString;
+            description: z.ZodString;
+            code: z.ZodOptional<z.ZodString>;
+            resources: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+            impact: z.ZodEnum<["low", "medium", "high"]>;
+        }, "strip", z.ZodTypeAny, {
+            type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+            title: string;
+            description: string;
+            impact: "high" | "low" | "medium";
+            code?: string | undefined;
+            resources?: string[] | undefined;
+        }, {
+            type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+            title: string;
+            description: string;
+            impact: "high" | "low" | "medium";
+            code?: string | undefined;
+            resources?: string[] | undefined;
+        }>, "many">;
+        reasoning: z.ZodString;
+        confidence: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        feature: string;
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: {
+            feature: {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            };
+            baseline: {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            } | null;
+            risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+            actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+            reason: string;
+            recommendation: string;
+            hasBreakingChange: boolean;
+        };
+        suggestions: {
+            type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+            title: string;
+            description: string;
+            impact: "high" | "low" | "medium";
+            code?: string | undefined;
+            resources?: string[] | undefined;
+        }[];
+        reasoning: string;
+        confidence: number;
+    }, {
+        feature: string;
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: {
+            feature: {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            };
+            baseline: {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            } | null;
+            risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+            actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+            reason: string;
+            recommendation: string;
+            hasBreakingChange: boolean;
+        };
+        suggestions: {
+            type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+            title: string;
+            description: string;
+            impact: "high" | "low" | "medium";
+            code?: string | undefined;
+            resources?: string[] | undefined;
+        }[];
+        reasoning: string;
+        confidence: number;
+    }>, "many">>;
     summary: z.ZodObject<{
         critical: z.ZodNumber;
         high: z.ZodNumber;
@@ -483,13 +1072,13 @@ export declare const AnalysisResult: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         high: number;
         low: number;
-        critical: number;
         medium: number;
+        critical: number;
     }, {
         high: number;
         low: number;
-        critical: number;
         medium: number;
+        critical: number;
     }>;
     decision: z.ZodObject<{
         action: z.ZodEnum<["BLOCK_PR", "REQUIRE_REVIEW", "COMMENT_ONLY", "NONE"]>;
@@ -551,8 +1140,8 @@ export declare const AnalysisResult: z.ZodObject<{
     summary: {
         high: number;
         low: number;
-        critical: number;
         medium: number;
+        critical: number;
     };
     decision: {
         message: string;
@@ -560,6 +1149,55 @@ export declare const AnalysisResult: z.ZodObject<{
         shouldBlock: boolean;
     };
     processingTime: number;
+    aiAnalyses?: {
+        feature: string;
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: {
+            feature: {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            };
+            baseline: {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            } | null;
+            risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+            actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+            reason: string;
+            recommendation: string;
+            hasBreakingChange: boolean;
+        };
+        suggestions: {
+            type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+            title: string;
+            description: string;
+            impact: "high" | "low" | "medium";
+            code?: string | undefined;
+            resources?: string[] | undefined;
+        }[];
+        reasoning: string;
+        confidence: number;
+    }[] | undefined;
 }, {
     prContext: {
         number: number;
@@ -606,8 +1244,8 @@ export declare const AnalysisResult: z.ZodObject<{
     summary: {
         high: number;
         low: number;
-        critical: number;
         medium: number;
+        critical: number;
     };
     decision: {
         message: string;
@@ -615,6 +1253,55 @@ export declare const AnalysisResult: z.ZodObject<{
         shouldBlock: boolean;
     };
     processingTime: number;
+    aiAnalyses?: {
+        feature: string;
+        baseline: {
+            status: "unknown" | "high" | "limited" | "low";
+            isBaseline2023: boolean;
+            isWidelySupported: boolean;
+            supportedBrowsers: {
+                browser: string;
+                version: string;
+            }[];
+            dateSupported: string | null;
+        } | null;
+        risk: {
+            feature: {
+                type: "CSS" | "JAVASCRIPT" | "HTML" | "WEB_API";
+                name: string;
+                location: {
+                    file: string;
+                    line: number;
+                    snippet: string;
+                };
+            };
+            baseline: {
+                status: "unknown" | "high" | "limited" | "low";
+                isBaseline2023: boolean;
+                isWidelySupported: boolean;
+                supportedBrowsers: {
+                    browser: string;
+                    version: string;
+                }[];
+                dateSupported: string | null;
+            } | null;
+            risk: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "IGNORE";
+            actionRequired: "BLOCK_PR" | "REQUIRE_REVIEW" | "COMMENT_ONLY" | "NONE";
+            reason: string;
+            recommendation: string;
+            hasBreakingChange: boolean;
+        };
+        suggestions: {
+            type: "alternative" | "workaround" | "polyfill" | "migration" | "best_practice";
+            title: string;
+            description: string;
+            impact: "high" | "low" | "medium";
+            code?: string | undefined;
+            resources?: string[] | undefined;
+        }[];
+        reasoning: string;
+        confidence: number;
+    }[] | undefined;
 }>;
 export type AnalysisResult = z.infer<typeof AnalysisResult>;
 //# sourceMappingURL=types.d.ts.map

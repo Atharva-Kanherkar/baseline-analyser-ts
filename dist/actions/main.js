@@ -64,6 +64,7 @@ function getConfigFromInputs() {
         enableAIReview: core.getBooleanInput('enable-ai-review'),
         githubToken: core.getInput('github-token') || process.env.GITHUB_TOKEN || '',
         openaiApiKey: core.getInput('openai-api-key') || process.env.OPENAI_API_KEY,
+        perplexityApiKey: core.getInput('perplexity-api-key') || process.env.PERPLEXITY_API_KEY,
     };
     logger.info(`Configuration: ${config.targetBrowsers.length} browsers, ${config.blockingLevel} blocking level`);
     return config;
@@ -161,7 +162,7 @@ async function postResultsToGitHub(githubToken, prNumber, result) {
     }
 }
 function generateGitHubComment(result) {
-    const { decision, summary, risksFound, processingTime } = result;
+    const { decision, summary, risksFound, aiAnalyses, processingTime } = result;
     let comment = `## 🔍 Baseline Compatibility Analysis\n\n`;
     const icon = decision.shouldBlock ? '🚨' : summary.high > 0 ? '⚠️' : summary.medium > 0 ? '🔍' : '✅';
     comment += `${icon} **${decision.message}**\n\n`;
@@ -171,6 +172,31 @@ function generateGitHubComment(result) {
         comment += `- ⚠️ High: ${summary.high}\n`;
         comment += `- 🔍 Medium: ${summary.medium}\n`;
         comment += `- 📝 Low: ${summary.low}\n\n`;
+    }
+    if (aiAnalyses && aiAnalyses.length > 0) {
+        comment += `### 🤖 AI-Powered Solutions\n\n`;
+        comment += `*Intelligent suggestions based on compatibility analysis*\n\n`;
+        for (const analysis of aiAnalyses.slice(0, 3)) {
+            comment += `#### 💡 Solutions for \`${analysis.feature}\`\n`;
+            comment += `${analysis.reasoning}\n\n`;
+            for (const suggestion of analysis.suggestions.slice(0, 2)) {
+                const impactIcon = suggestion.impact === 'high' ? '🔥' : suggestion.impact === 'medium' ? '⚖️' : '🔧';
+                const typeIcon = suggestion.type === 'alternative' ? '🔄' :
+                    suggestion.type === 'polyfill' ? '🛠️' :
+                        suggestion.type === 'workaround' ? '🔧' :
+                            suggestion.type === 'migration' ? '⬆️' : '💡';
+                comment += `**${typeIcon} ${suggestion.title}** ${impactIcon}\n`;
+                comment += `${suggestion.description}\n`;
+                if (suggestion.code) {
+                    comment += `\`\`\`${getLanguageFromFile(analysis.feature)}\n${suggestion.code}\n\`\`\`\n`;
+                }
+                if (suggestion.resources && suggestion.resources.length > 0) {
+                    comment += `📚 Resources: ${suggestion.resources.slice(0, 2).map((url) => `[link](${url})`).join(', ')}\n`;
+                }
+                comment += `\n`;
+            }
+            comment += `*Confidence: ${Math.round(analysis.confidence * 100)}%*\n\n---\n\n`;
+        }
     }
     if (risksFound.length > 0) {
         comment += `### Detailed Findings\n\n`;

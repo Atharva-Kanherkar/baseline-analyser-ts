@@ -33,12 +33,16 @@ inputs:
     default: '50'
   
   enable-ai-review:
-    description: 'Enable AI-powered review suggestions'
+    description: 'Enable AI-powered review suggestions with Perplexity'
     required: false
     default: 'false'
   
+  perplexity-api-key:
+    description: 'Perplexity API key for AI-powered suggestions (optional)'
+    required: false
+  
   openai-api-key:
-    description: 'OpenAI API key for AI features (optional)'
+    description: 'OpenAI API key for AI features (deprecated - use perplexity-api-key)'
     required: false
 
 outputs:

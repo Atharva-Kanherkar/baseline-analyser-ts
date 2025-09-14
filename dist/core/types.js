@@ -10,6 +10,7 @@ export const AnalyzerConfig = z.object({
     enableAIReview: z.boolean().default(false),
     githubToken: z.string(),
     openaiApiKey: z.string().optional(),
+    perplexityApiKey: z.string().optional(),
 });
 export const PRSize = z.enum(['SMALL', 'MEDIUM', 'LARGE', 'HUGE']);
 export const PRContext = z.object({
@@ -62,10 +63,27 @@ export const RiskAssessment = z.object({
     recommendation: z.string(),
     hasBreakingChange: z.boolean(),
 });
+export const AISuggestion = z.object({
+    type: z.enum(['alternative', 'workaround', 'polyfill', 'migration', 'best_practice']),
+    title: z.string(),
+    description: z.string(),
+    code: z.string().optional(),
+    resources: z.array(z.string()).optional(),
+    impact: z.enum(['low', 'medium', 'high']),
+});
+export const AIAnalysis = z.object({
+    feature: z.string(),
+    baseline: BaselineInfo.nullable(),
+    risk: RiskAssessment,
+    suggestions: z.array(AISuggestion),
+    reasoning: z.string(),
+    confidence: z.number(),
+});
 export const AnalysisResult = z.object({
     prContext: PRContext,
     totalFeaturesDetected: z.number(),
     risksFound: z.array(RiskAssessment),
+    aiAnalyses: z.array(AIAnalysis).optional(),
     summary: z.object({
         critical: z.number(),
         high: z.number(),

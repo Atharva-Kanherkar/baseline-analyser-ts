@@ -3,19 +3,22 @@ import { ContextEngine } from '../components/context-engine/index.js';
 import { SmartFilter } from '../components/smart-filter/index.js';
 import { FeatureDetector } from '../components/feature-detector/index.js';
 import { RiskCalculator } from '../components/risk-calculator/index.js';
+import { AIService } from '../services/ai.service.js';
 export class BaselineAnalyzer {
     config;
     contextEngine;
     smartFilter;
     featureDetector;
     riskCalculator;
+    aiService;
     constructor(config) {
         this.config = config;
         this.contextEngine = new ContextEngine();
         this.smartFilter = new SmartFilter();
         this.featureDetector = new FeatureDetector();
         this.riskCalculator = new RiskCalculator();
-        logger.info('Baseline Analyzer initialized');
+        this.aiService = new AIService(config.perplexityApiKey || process.env.PERPLEXITY_API_KEY);
+        logger.info('Baseline Analyzer initialized with AI service');
     }
     async analyze(prData, codeChanges) {
         const startTime = Date.now();
@@ -37,7 +40,18 @@ export class BaselineAnalyzer {
             const allRisks = await this.riskCalculator.assessRisks(detectedFeatures, prContext, this.config);
             logger.info('STAGE 5: Applying large PR handling logic');
             const filteredRisks = this.applyLargePRLogic(allRisks, strategy);
-            logger.info('STAGE 6: Making final PR decision');
+            let aiAnalyses = [];
+            if (this.config.enableAIReview && filteredRisks.length > 0) {
+                logger.info('STAGE 6: Running AI analysis for intelligent suggestions');
+                try {
+                    aiAnalyses = await this.aiService.analyzeFeatures(filteredRisks, prContext);
+                    logger.info(`AI analysis completed: ${aiAnalyses.length} features analyzed`);
+                }
+                catch (error) {
+                    logger.warn('AI analysis failed:', error);
+                }
+            }
+            logger.info('STAGE 7: Making final PR decision');
             const decision = this.makeDecision(filteredRisks, prContext);
             const summary = this.generateSummary(allRisks);
             const processingTime = Date.now() - startTime;
@@ -45,6 +59,7 @@ export class BaselineAnalyzer {
                 prContext,
                 totalFeaturesDetected: detectedFeatures.length,
                 risksFound: filteredRisks,
+                aiAnalyses: aiAnalyses.length > 0 ? aiAnalyses : undefined,
                 summary,
                 decision,
                 processingTime,

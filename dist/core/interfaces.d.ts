@@ -20,6 +20,10 @@ export interface IRiskCalculator {
     assessRisks(features: DetectedFeature[], context: PRContext, config: AnalyzerConfig): Promise<RiskAssessment[]>;
     calculateRisk(feature: DetectedFeature, baseline: BaselineInfo | null, context: PRContext): RiskLevel;
 }
+export interface IAIService {
+    analyzeFeatures(risks: RiskAssessment[], prContext: PRContext): Promise<import('./types.js').AIAnalysis[]>;
+    generateAISummary(analyses: import('./types.js').AIAnalysis[]): string;
+}
 export interface IReporter {
     generateReport(risks: RiskAssessment[], context: PRContext): Promise<AnalysisResult>;
     formatForGitHub(result: AnalysisResult): string;

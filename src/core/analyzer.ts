@@ -4,13 +4,15 @@ import type {
   CodeChange, 
   PRContext,
   RiskAssessment,
-  ActionType
+  ActionType,
+  AIAnalysis
 } from './types.js';
 import { logger } from '../utils/logger.js';
 import { ContextEngine } from '../components/context-engine/index.js';
 import { SmartFilter } from '../components/smart-filter/index.js';
 import { FeatureDetector } from '../components/feature-detector/index.js';
 import { RiskCalculator } from '../components/risk-calculator/index.js';
+import { AIService } from '../services/ai.service.js';
 
 /**
  * Main Analyzer - The Orchestrator
@@ -28,14 +30,16 @@ export class BaselineAnalyzer {
   private smartFilter: SmartFilter;
   private featureDetector: FeatureDetector;
   private riskCalculator: RiskCalculator;
+  private aiService: AIService;
   
   constructor(private config: AnalyzerConfig) {
     this.contextEngine = new ContextEngine();
     this.smartFilter = new SmartFilter();
     this.featureDetector = new FeatureDetector();
     this.riskCalculator = new RiskCalculator();
+    this.aiService = new AIService(config.perplexityApiKey || process.env.PERPLEXITY_API_KEY);
     
-    logger.info('Baseline Analyzer initialized');
+    logger.info('Baseline Analyzer initialized with AI service');
   }
   
   /**
@@ -81,8 +85,20 @@ export class BaselineAnalyzer {
       logger.info('STAGE 5: Applying large PR handling logic');
       const filteredRisks = this.applyLargePRLogic(allRisks, strategy);
       
-      // STAGE 6: Final Decision Making
-      logger.info('STAGE 6: Making final PR decision');
+      // STAGE 6: AI Analysis (if enabled and API key is available)
+      let aiAnalyses: AIAnalysis[] = [];
+      if (this.config.enableAIReview && filteredRisks.length > 0) {
+        logger.info('STAGE 6: Running AI analysis for intelligent suggestions');
+        try {
+          aiAnalyses = await this.aiService.analyzeFeatures(filteredRisks, prContext);
+          logger.info(`AI analysis completed: ${aiAnalyses.length} features analyzed`);
+        } catch (error) {
+          logger.warn('AI analysis failed:', error);
+        }
+      }
+      
+      // STAGE 7: Final Decision Making
+      logger.info('STAGE 7: Making final PR decision');
       const decision = this.makeDecision(filteredRisks, prContext);
       
       // Generate summary
@@ -94,6 +110,7 @@ export class BaselineAnalyzer {
         prContext,
         totalFeaturesDetected: detectedFeatures.length,
         risksFound: filteredRisks,
+        aiAnalyses: aiAnalyses.length > 0 ? aiAnalyses : undefined,
         summary,
         decision,
         processingTime,

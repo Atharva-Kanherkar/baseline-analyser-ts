@@ -25,6 +25,7 @@ export const AnalyzerConfig = z.object({
   enableAIReview: z.boolean().default(false),
   githubToken: z.string(),
   openaiApiKey: z.string().optional(),
+  perplexityApiKey: z.string().optional(),
 });
 export type AnalyzerConfig = z.infer<typeof AnalyzerConfig>;
 
@@ -113,10 +114,35 @@ export type RiskAssessment = z.infer<typeof RiskAssessment>;
 // ANALYSIS RESULT TYPES
 // =============================================================================
 
+// =============================================================================
+// AI ANALYSIS TYPES
+// =============================================================================
+
+export const AISuggestion = z.object({
+  type: z.enum(['alternative', 'workaround', 'polyfill', 'migration', 'best_practice']),
+  title: z.string(),
+  description: z.string(),
+  code: z.string().optional(),
+  resources: z.array(z.string()).optional(),
+  impact: z.enum(['low', 'medium', 'high']),
+});
+export type AISuggestion = z.infer<typeof AISuggestion>;
+
+export const AIAnalysis = z.object({
+  feature: z.string(),
+  baseline: BaselineInfo.nullable(),
+  risk: RiskAssessment,
+  suggestions: z.array(AISuggestion),
+  reasoning: z.string(),
+  confidence: z.number(),
+});
+export type AIAnalysis = z.infer<typeof AIAnalysis>;
+
 export const AnalysisResult = z.object({
   prContext: PRContext,
   totalFeaturesDetected: z.number(),
   risksFound: z.array(RiskAssessment),
+  aiAnalyses: z.array(AIAnalysis).optional(),
   summary: z.object({
     critical: z.number(),
     high: z.number(),

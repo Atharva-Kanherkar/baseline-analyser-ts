@@ -72,7 +72,8 @@ jobs:
 | `target-browsers` | Comma-separated browser targets | `chrome >= 90, firefox >= 88, safari >= 14, edge >= 90` | ❌ |
 | `large-pr-threshold` | Files count for large PR classification | `20` | ❌ |
 | `huge-pr-threshold` | Files count for huge PR classification | `50` | ❌ |
-| `enable-ai-review` | Enable AI-powered suggestions *(experimental)* | `false` | ❌ |
+| `enable-ai-review` | Enable AI-powered suggestions with Perplexity | `false` | ❌ |
+| `perplexity-api-key` | Perplexity API key for AI suggestions | `${{ secrets.PERPLEXITY_API_KEY }}` | ❌ |
 
 ### Blocking Levels Explained
 
@@ -80,6 +81,69 @@ jobs:
 - **`warning`** - Add comments and request reviews for compatibility issues (recommended)
 - **`error`** - Block PRs with high-risk compatibility issues
 - **`critical`** - Only block PRs with critical compatibility problems
+
+## 🤖 AI-Powered Smart Suggestions
+
+When enabled, the analyzer uses **Perplexity AI** to provide intelligent, contextual solutions for compatibility issues:
+
+### 🎯 What AI Suggestions Include
+
+- **🔄 Alternative Solutions** - Modern replacements that work across browsers
+- **🛠️ Polyfill Recommendations** - Ready-to-use polyfills with implementation guides  
+- **🔧 Workarounds** - Creative solutions to maintain functionality
+- **⬆️ Migration Paths** - Step-by-step guides to upgrade legacy code
+- **💡 Best Practices** - Industry-standard approaches with code examples
+
+### 🚀 Setup AI Features
+
+1. **Get a Perplexity API Key** at [perplexity.ai](https://perplexity.ai)
+2. **Add to GitHub Secrets** as `PERPLEXITY_API_KEY`
+3. **Enable in workflow**:
+
+```yaml
+- uses: Atharva-Kanherkar/baseline-analyser-ts@v1.0.0
+  with:
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    enable-ai-review: true
+    perplexity-api-key: ${{ secrets.PERPLEXITY_API_KEY }}
+```
+
+### 📊 AI-Enhanced Output Example
+
+The analyzer provides both traditional compatibility analysis and AI suggestions:
+
+```markdown
+### 🤖 AI-Powered Solutions
+
+#### 💡 Solutions for `container-type`
+Modern CSS Container Queries provide responsive design capabilities but need fallbacks for older browsers.
+
+🔄 **Use Media Queries Alternative** ⚖️
+Implement responsive behavior using traditional media queries with CSS Grid.
+```css
+@media (min-width: 768px) {
+  .card { display: grid; grid-template-columns: 1fr 2fr; }
+}
+```
+
+🛠️ **Add Progressive Enhancement** 🔧  
+Detect container query support and enhance progressively.
+```css
+@supports (container-type: inline-size) {
+  .card { container-type: inline-size; }
+}
+```
+
+*Confidence: 85%*
+```
+
+### ✨ Benefits of AI Integration
+
+- **⚡ Faster Development** - Get solutions instantly without research
+- **📚 Educational** - Learn modern web development best practices  
+- **🎯 Context-Aware** - Solutions tailored to your specific use case
+- **🔍 Web-Search Powered** - Uses Perplexity's real-time internet access
+- **💯 Actionable** - Provides ready-to-implement code examples
 
 ## 📊 Example Output
 

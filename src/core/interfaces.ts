@@ -48,6 +48,14 @@ export interface IRiskCalculator {
   ): RiskLevel;
 }
 
+export interface IAIService {
+  analyzeFeatures(
+    risks: RiskAssessment[],
+    prContext: PRContext
+  ): Promise<import('./types.js').AIAnalysis[]>;
+  generateAISummary(analyses: import('./types.js').AIAnalysis[]): string;
+}
+
 export interface IReporter {
   generateReport(
     risks: RiskAssessment[],

@@ -107,6 +107,7 @@ function getConfigFromInputs(): AnalyzerConfig {
     enableAIReview: core.getBooleanInput('enable-ai-review'),
     githubToken: core.getInput('github-token') || process.env.GITHUB_TOKEN || '',
     openaiApiKey: core.getInput('openai-api-key') || process.env.OPENAI_API_KEY,
+    perplexityApiKey: core.getInput('perplexity-api-key') || process.env.PERPLEXITY_API_KEY,
   };
   
   logger.info(`Configuration: ${config.targetBrowsers.length} browsers, ${config.blockingLevel} blocking level`);
@@ -263,7 +264,7 @@ async function postResultsToGitHub(
  * Generates a formatted GitHub comment with results
  */
 function generateGitHubComment(result: any): string {
-  const { decision, summary, risksFound, processingTime } = result;
+  const { decision, summary, risksFound, aiAnalyses, processingTime } = result;
   
   let comment = `## 🔍 Baseline Compatibility Analysis\n\n`;
   
@@ -280,6 +281,40 @@ function generateGitHubComment(result: any): string {
     comment += `- 📝 Low: ${summary.low}\n\n`;
   }
   
+  // Add AI suggestions if available
+  if (aiAnalyses && aiAnalyses.length > 0) {
+    comment += `### 🤖 AI-Powered Solutions\n\n`;
+    comment += `*Intelligent suggestions based on compatibility analysis*\n\n`;
+    
+    for (const analysis of aiAnalyses.slice(0, 3)) { // Limit to top 3 AI analyses
+      comment += `#### 💡 Solutions for \`${analysis.feature}\`\n`;
+      comment += `${analysis.reasoning}\n\n`;
+      
+      for (const suggestion of analysis.suggestions.slice(0, 2)) { // Top 2 suggestions per feature
+        const impactIcon = suggestion.impact === 'high' ? '🔥' : suggestion.impact === 'medium' ? '⚖️' : '🔧';
+        const typeIcon = suggestion.type === 'alternative' ? '🔄' : 
+                        suggestion.type === 'polyfill' ? '🛠️' : 
+                        suggestion.type === 'workaround' ? '🔧' : 
+                        suggestion.type === 'migration' ? '⬆️' : '💡';
+        
+        comment += `**${typeIcon} ${suggestion.title}** ${impactIcon}\n`;
+        comment += `${suggestion.description}\n`;
+        
+        if (suggestion.code) {
+          comment += `\`\`\`${getLanguageFromFile(analysis.feature)}\n${suggestion.code}\n\`\`\`\n`;
+        }
+        
+        if (suggestion.resources && suggestion.resources.length > 0) {
+          comment += `📚 Resources: ${suggestion.resources.slice(0, 2).map((url: string) => `[link](${url})`).join(', ')}\n`;
+        }
+        
+        comment += `\n`;
+      }
+      
+      comment += `*Confidence: ${Math.round(analysis.confidence * 100)}%*\n\n---\n\n`;
+    }
+  }
+
   // Add detailed findings
   if (risksFound.length > 0) {
     comment += `### Detailed Findings\n\n`;

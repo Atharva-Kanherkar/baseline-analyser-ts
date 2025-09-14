@@ -5,6 +5,7 @@ export declare class BaselineAnalyzer {
     private smartFilter;
     private featureDetector;
     private riskCalculator;
+    private aiService;
     constructor(config: AnalyzerConfig);
     analyze(prData: unknown, codeChanges: CodeChange[]): Promise<AnalysisResult>;
     private applyLargePRLogic;
