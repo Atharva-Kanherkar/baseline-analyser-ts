@@ -16,18 +16,26 @@ export class AIService {
             return [];
         }
         const analyses = [];
+        logger.info(`AI Service: Evaluating ${risks.length} risk assessments for AI analysis`);
+        for (const risk of risks) {
+            logger.info(`  - ${risk.feature.name}: risk=${risk.risk}, baseline_status=${risk.baseline?.status || 'null'}`);
+        }
         const candidateFeatures = risks
             .filter(risk => {
             if (['HIGH', 'CRITICAL'].includes(risk.risk)) {
+                logger.info(`  ✅ Including ${risk.feature.name} (HIGH/CRITICAL risk)`);
                 return true;
             }
             if (risk.risk === 'MEDIUM' && risk.baseline &&
                 ['limited', 'newly'].includes(risk.baseline.status)) {
+                logger.info(`  ✅ Including ${risk.feature.name} (MEDIUM risk with ${risk.baseline.status} baseline)`);
                 return true;
             }
+            logger.info(`  ❌ Skipping ${risk.feature.name} (risk=${risk.risk}, baseline=${risk.baseline?.status || 'null'})`);
             return false;
         })
             .slice(0, 5);
+        logger.info(`AI Service: Selected ${candidateFeatures.length} features for analysis`);
         for (const risk of candidateFeatures) {
             try {
                 const feature = risk.feature;

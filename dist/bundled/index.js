@@ -32527,10 +32527,27 @@ class AIService {
             return [];
         }
         const analyses = [];
-        const prioritizedRisks = risks
-            .filter(risk => ['HIGH', 'CRITICAL'].includes(risk.risk))
+        logger/* logger */.v.info(`AI Service: Evaluating ${risks.length} risk assessments for AI analysis`);
+        for (const risk of risks) {
+            logger/* logger */.v.info(`  - ${risk.feature.name}: risk=${risk.risk}, baseline_status=${risk.baseline?.status || 'null'}`);
+        }
+        const candidateFeatures = risks
+            .filter(risk => {
+            if (['HIGH', 'CRITICAL'].includes(risk.risk)) {
+                logger/* logger */.v.info(`  ✅ Including ${risk.feature.name} (HIGH/CRITICAL risk)`);
+                return true;
+            }
+            if (risk.risk === 'MEDIUM' && risk.baseline &&
+                ['limited', 'newly'].includes(risk.baseline.status)) {
+                logger/* logger */.v.info(`  ✅ Including ${risk.feature.name} (MEDIUM risk with ${risk.baseline.status} baseline)`);
+                return true;
+            }
+            logger/* logger */.v.info(`  ❌ Skipping ${risk.feature.name} (risk=${risk.risk}, baseline=${risk.baseline?.status || 'null'})`);
+            return false;
+        })
             .slice(0, 5);
-        for (const risk of prioritizedRisks) {
+        logger/* logger */.v.info(`AI Service: Selected ${candidateFeatures.length} features for analysis`);
+        for (const risk of candidateFeatures) {
             try {
                 const feature = risk.feature;
                 const baseline = risk.baseline;
@@ -32710,7 +32727,7 @@ Format your response as JSON with this structure:
             return acc;
         }, {});
         let summary = `🤖 **AI Analysis Summary**\n\n`;
-        summary += `- Analyzed ${analyses.length} high-risk features\n`;
+        summary += `- Analyzed ${analyses.length} features requiring attention\n`;
         summary += `- Generated ${totalSuggestions} actionable suggestions\n`;
         summary += `- Average confidence: ${(avgConfidence * 100).toFixed(1)}%\n\n`;
         if (Object.keys(suggestionTypes).length > 0) {
